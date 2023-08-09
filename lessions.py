@@ -71,11 +71,11 @@ while count < 10:
     count += 1
 
 if count <= 3:
-    print("you are clever, 猜了", count)
+    print("you are clever, 猜了", count, "次")
 elif count <= 6:
-    print("you are clever, 猜了", count)
+    print("you are clever, 猜了", count, "次")
 else:
-    print("you are lucky, 猜了", count)
+    print("you are lucky, 猜了", count, "次")
 
 """
 空语句 pass
@@ -86,3 +86,46 @@ else:
 if True:
     pass
     print("test pass")
+
+
+"""
+实现人机对战：石头剪刀布
+
+需求：
+分析人物角色
+·玩家输入 ： 1-》拳头  2-》剪刀  3-》布
+·电脑输出 同样，使用random.randint(1,3)
+
+程序处理
+·使用多重if判断玩家与电脑角色输赢情况
+·使用无限循环while实现多局对战
+
+绘制流程图
+
+增加变量保存当前数字对应的值，只要判断赢就可以了，其余都是输，直接输出值
+"""
+
+continue_flag="y"
+while continue_flag == "y":
+    print("-------")
+    player_number = eval(input("请玩家出 1.石头 2.剪刀 3.布： "))
+    computer_number = random.randint(1, 3)
+    if player_number == computer_number:
+        print("玩家与电脑 平 ", player_number)
+    elif player_number == 1 and computer_number == 2:
+        print("玩家出拳", player_number, ", 电脑出剪刀", computer_number, " 玩家胜")
+    elif player_number == 1 and computer_number == 3:
+        print("玩家出拳", player_number, ", 电脑出布", computer_number, "玩家负")
+    elif player_number == 2 and computer_number == 1:
+        print("玩家出剪刀", player_number, ", 电脑出拳", computer_number, "玩家负")
+    elif player_number == 2 and computer_number == 3:
+        print("玩家出剪刀", player_number, ", 电脑出布", computer_number, "玩家胜")
+    elif player_number == 3 and computer_number == 1:
+        print("玩家出布", player_number, ", 电脑出拳头", computer_number, "玩家胜")
+    elif player_number == 3 and computer_number == 2:
+        print("玩家出布", player_number, ", 电脑出剪刀", computer_number, "玩家负")
+    else:
+        print("玩家不按套路出牌，请重来")
+        continue
+    continue_flag = input("是否继续： y/n: ")
+print("游戏结束")
