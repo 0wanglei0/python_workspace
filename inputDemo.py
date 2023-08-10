@@ -186,6 +186,7 @@ print(bin(-4))
 """
 
 inputString = input("please input number")
+print(isinstance(inputString, str))
 number = eval(inputString)
 four = number // 1000
 three = number % 1000 // 100
