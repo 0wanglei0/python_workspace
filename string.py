@@ -111,3 +111,61 @@ print(s)
 
 print(s.join(("1", "2")))
 print(s.join(["1", "2"]))
+
+
+"""
+字符串的比较
+
+1.运算符：> >= < <= == !=
+2.比较规则：从第一个字符开始比较两个字符串，直到两个字符串的字符不一致，后续字符不再比较
+3.原理：两个字符比较时，比较的是ordinal value，调用内置函数ord可以得到指定字符的ordinal value，与ord对应的函数是chr，可以
+通过ordinal value获取到对应字符
+
+== 比较的是value
+is 比较的是地址
+
+切片操作
+字符串时不可变类型，不能增删改，切片将产生新对象
+与列表类似
+string[start:stop:step]
+如果是负数，从字符串的start开始截取
+
+"""
+s = "hello, python"
+print(s[-5::1]) #从y开始截取
+
+"""
+格式化字符串
+两种方式
+1.%
+%d, %s, %i, %f...
+2.{}
+{0}, {1}
+s = "{0},{1}".format(value, value1)
+s = f"a{value}, b{value1}"
+....{0}, ....{1}, {0}.format()
+"""
+
+name = "wang"
+age = "3"
+print("my name is {0}, age is {1}".format(name, age))
+print(f"my name is {name}, age is {age}")
+
+print("%10d" % 99) # 10表示宽度
+print("%10.3f" % 3.1415926) # 3表示精度，10表示宽度
+
+print("{0:.3}".format(3.1415926)) #此处3表示总长度
+print("{0:.3f}".format(3.1415926)) #此处3表示3位小数
+print("{:10.3f}".format(3.1415926)) # 只有一个参数，0可省略，此处3表示3位小数,10表示宽度
+
+
+"""
+字符串的编码转换
+"""
+
+s = "你好"
+print(s.encode("utf-8"))
+print(s.encode("utf-8").decode("utf-8"))
+print(s.encode("utf-8").decode("gbk"))
+print(s.encode("gbk"))
+print(s.encode("gbk").decode("gbk"))
