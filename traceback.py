@@ -1,16 +1,16 @@
-import traceback
-
-"""
-使用traceback打印异常信息
-
-"""
-
-try:
-    num = 10 / 0
-except BaseException as e:
-    print(traceback)
-finally:
-    print("over")
+# import traceback
+#
+# """
+# 使用traceback打印异常信息
+#
+# """
+#
+# try:
+#     num = 10 / 0
+# except BaseException as e:
+#     print(traceback)
+# finally:
+#     print("over")
 
 
 """
@@ -40,6 +40,11 @@ student = Student(参数)
 ·类方法和静态方法
 """
 
+
+def method():
+    print("normal method")
+
+
 class Student: # 一般首字母大写
     name = ""
     age = 0
@@ -49,8 +54,6 @@ class Student: # 一般首字母大写
         self.age = age
         self.gender = gender
 
-    def method(self):
-        print("normal method")
     @staticmethod # 静态方法，不需要添加self参数 注解声明是静态方法
     def eat():
         print("students eat")
@@ -75,7 +78,7 @@ print(student.name)
 print(student.gender)
 student.eat()
 student.run()
-student.method()
+method()
 print("-------------------------")
 print(id(Student))
 print(type(Student))
@@ -84,5 +87,23 @@ print(Student.age)
 print(Student.name)
 print(Student.gender)
 Student.eat() # 静态方法不传入参数
-Student.method(student) # 方法需要参数
+method() # 方法需要参数
 Student.run() # 注解声明的方法不传入参数
+
+
+"""
+动态绑定属性和方法
+def show():
+    print()
+stu.show = show
+stu.show()
+"""
+
+# 可以直接添加属性，但只对当前对象有用，此过程为动态绑定，相当于多态吧
+student.home = "where"
+print(student.home)
+
+# 动态绑定方法，多态，覆盖
+student.eat = drink
+student.eat()
+
