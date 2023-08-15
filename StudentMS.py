@@ -53,7 +53,7 @@ students
 """
 import os.path
 
-import traceback
+import lesson_traceback
 filename = "students.txt"
 format_title = "{:^6}\t{:^12}\t{:^8}\t{:^10}\t{:^10}\t{:^8}"
 title = format_title.format("ID", "name", "english", "python", "java", "total")
@@ -280,3 +280,14 @@ if __name__ == "__main__":
     print(myList)
     myList.sort()
     main()
+
+
+"""
+项目打包
+
+在线安装模式
+ pip install PyInstaller
+
+执行打包操作
+"""
+
