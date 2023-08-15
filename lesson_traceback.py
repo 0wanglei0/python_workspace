@@ -45,20 +45,21 @@ def method():
     print("normal method")
 
 
-class Student: # 一般首字母大写
+class Student:  # 一般首字母大写
     name = ""
     age = 0
     gender = "male"
+
     def __init__(self, name, age, gender):
         self.name = name
         self.age = age
         self.gender = gender
 
-    @staticmethod # 静态方法，不需要添加self参数 注解声明是静态方法
+    @staticmethod  # 静态方法，不需要添加self参数 注解声明是静态方法
     def eat():
         print("students eat")
 
-    @classmethod # 注解声明是类方法，一般参数为cls
+    @classmethod  # 注解声明是类方法，一般参数为cls
     def run(cls):
         print("students run")
 
@@ -67,43 +68,43 @@ class Student: # 一般首字母大写
 def drink():
     print("drink")
 
+
 # 声明的对象可以直接调用方法
 student = Student("wang", 12, "male")
 
-print(id(student))
-print(type(student))
-print(student)
-print(student.age)
-print(student.name)
-print(student.gender)
-student.eat()
-student.run()
-method()
-print("-------------------------")
-print(id(Student))
-print(type(Student))
-print(Student)
-print(Student.age)
-print(Student.name)
-print(Student.gender)
-Student.eat() # 静态方法不传入参数
-method() # 方法需要参数
-Student.run() # 注解声明的方法不传入参数
+if __name__ == "__main__":
+    print(id(student))
+    print(type(student))
+    print(student)
+    print(student.age)
+    print(student.name)
+    print(student.gender)
+    student.eat()
+    student.run()
+    method()
+    print("-------------------------")
+    print(id(Student))
+    print(type(Student))
+    print(Student)
+    print(Student.age)
+    print(Student.name)
+    print(Student.gender)
+    Student.eat()  # 静态方法不传入参数
+    method()  # 方法需要参数
+    Student.run()  # 注解声明的方法不传入参数
 
+    """
+    动态绑定属性和方法
+    def show():
+        print()
+    stu.show = show
+    stu.show()
+    """
 
-"""
-动态绑定属性和方法
-def show():
-    print()
-stu.show = show
-stu.show()
-"""
+    # 可以直接添加属性，但只对当前对象有用，此过程为动态绑定，相当于多态吧
+    student.home = "where"
+    print(student.home)
 
-# 可以直接添加属性，但只对当前对象有用，此过程为动态绑定，相当于多态吧
-student.home = "where"
-print(student.home)
-
-# 动态绑定方法，多态，覆盖
-student.eat = drink
-student.eat()
-
+    # 动态绑定方法，多态，覆盖
+    student.eat = drink
+    student.eat()

@@ -54,6 +54,7 @@ students
 import os.path
 
 import lesson_traceback
+
 filename = "students.txt"
 format_title = "{:^6}\t{:^12}\t{:^8}\t{:^10}\t{:^10}\t{:^8}"
 title = format_title.format("ID", "name", "english", "python", "java", "total")
@@ -70,6 +71,7 @@ def start():
     print("\t\t\t\t\t 6.统计学生人数")
     print("\t\t\t\t\t 7.显示学生信息")
     print("\t\t\t\t\t 0.退出系统")
+
 
 def insert():
     lst = []
@@ -104,6 +106,7 @@ def insert():
 
     save(lst)
 
+
 def save(lst):
     with open(filename, "a+", encoding="utf8") as file:
         for item in lst:
@@ -111,6 +114,7 @@ def save(lst):
             file.write(str(item))
             file.write("\n")
         print("completed")
+
 
 def delete():
     while True:
@@ -211,9 +215,11 @@ def sort():
     # 可以增加选择输入排序的依据
     show_student(lst)
 
+
 def total():
     lst = get_students()
     print("total is ", len(lst), " students")
+
 
 def show():
     lst = get_students()
@@ -226,6 +232,7 @@ def show_student(lst):
         d = dict(eval(item))
         print(format_title.format(d["Id"], d["Name"], d["English"], d["Python"], d["Java"],
                                   d["English"] + d["Python"] + d["Java"]))
+
 
 def get_students():
     if os.path.exists(filename):
@@ -271,16 +278,16 @@ def main():
             print("请重新选择")
             continue
 
+
 if __name__ == "__main__":
     myList = ["{'Id': '2', 'Name': '3', 'English': 3, 'Python': 3, 'Java': 3}",
-     "{'Id': '3', 'Name': '3', 'English': 3, 'Python': 3, 'Java': 3}",
-     "{'Id': '1', 'Name': '5', 'English': 1, 'Python': 1, 'Java': 1}",
-     "{'Id': '2', 'Name': '2', 'English': 2, 'Python': 2, 'Java': 2}"]
+              "{'Id': '3', 'Name': '3', 'English': 3, 'Python': 3, 'Java': 3}",
+              "{'Id': '1', 'Name': '5', 'English': 1, 'Python': 1, 'Java': 1}",
+              "{'Id': '2', 'Name': '2', 'English': 2, 'Python': 2, 'Java': 2}"]
     myList.sort(key=lambda i: eval(i)["Name"], reverse=True)
     print(myList)
     myList.sort()
     main()
-
 
 """
 项目打包
@@ -289,5 +296,5 @@ if __name__ == "__main__":
  pip install PyInstaller
 
 执行打包操作
+ pyinstaller -F file
 """
-
