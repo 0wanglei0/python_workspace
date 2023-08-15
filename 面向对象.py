@@ -80,3 +80,7 @@ person.info()
 print("-----------------------------------")
 c = C("c", 12, "female", 10, "c")
 c.info()
+
+print(C.__base__)
+print(C.__bases__)
+print(C.__mro__)
