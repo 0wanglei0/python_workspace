@@ -23,5 +23,16 @@
 结果呈现
 数据应用
 
-"""
 
+pandas
+"""
+import pandas as pd
+import xlrd
+
+# pd.read_excel()
+
+data = ["a", "b", "c"]
+series = pd.Series(data, index=[1,2,3])
+print(series)
+series = pd.Series(data)
+print(series)
