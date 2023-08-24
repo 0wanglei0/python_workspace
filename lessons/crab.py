@@ -24,6 +24,7 @@ def start_requests():
     result = response.text.replace(callback, '')
     result = result[1: result.rfind(')')]
     data = json.loads(result)
+    print(data)
     # 遍历行业分类数据，获取名称和代号
     for item in data['Data']['hy'] :
         time.sleep(3)
