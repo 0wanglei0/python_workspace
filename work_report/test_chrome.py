@@ -42,19 +42,33 @@ def auto_login():
         first_day_of_month) + "&time_end%5B%5D=" + today + "&commit=%E6%9F%A5%E8%AF%A2"
     browser.get(url)
 
-    username = browser.find_element(By.ID, "username")
-    password = browser.find_element(By.ID, "password")
+    username_element = browser.find_element(By.ID, "username")
+    password_element = browser.find_element(By.ID, "password")
     login_button = browser.find_element(By.NAME, "login")
-    print(username)
-    print(password)
-    if username:
-        username.send_keys(input("用户名:"))
-        password.send_keys(input("密码:"))
+    # print(username)
+    # print(password)
+    with open("user_info.txt", "a+", encoding="utf8") as user_info:
+        user_info.seek(0)
+        lines = user_info.readlines()
+        if not lines:
+            username = input("用户名:")
+            password = input("password:")
+            print(username, file=user_info)
+            print(password, file=user_info)
+        else:
+            username = lines[0].replace("\n", "")
+            password = lines[1].replace("\n", "")
+            print(username)
+            print(password)
+
+    if username_element:
+        username_element.send_keys(username)
+        password_element.send_keys(password)
         login_button.click()
 
     time.sleep(5)
 
-    print(browser.get_cookies())
+    # print(browser.get_cookies())
     cookie = browser.get_cookies()[0].get("value")
     headers["Cookie"] = "_redmine_session=" + cookie
     response = requests.get(url, headers=headers)
@@ -103,16 +117,16 @@ def print_to_file(table_dic):
     for item in fill_value:
         if len(item) != 13:
             continue
-        if item[3] == '':
+        if item[5] == '':
             workday += 1
             if item[2] == "事假":
                 holiday_time += float(item[6])
-            current_work_time = "%.2f" % (float(item[7]) + float(item[6]) - 8)
-            external_work += float(current_work_time)
-            print(current_work_time)
-            print(external_work)
+            current_external_work_time = "%.2f" % (float(item[7]) + float(item[6]) - 8)
+            external_work += float(current_external_work_time)
+            print("current_external_work_time", current_external_work_time)
+            print("external_work", external_work)
             print_lst.append(str(item[0] + "\t" + item[2] + "\t" + item[6] + "\t" + item[7] + "\t"
-                                 + str(current_work_time) + "\n"))
+                                 + str(current_external_work_time) + "\n"))
         else:
             this_date = item[0].split("-")
             year = int(this_date[0])
@@ -120,15 +134,15 @@ def print_to_file(table_dic):
             day = int(this_date[2])
             weekday = calendar.weekday(year, month, day)
             if weekday == 6 or weekday == 5:
-                external_work += float(item[6])
-                print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[6] + "\t" + item[6]) + "\n")
+                external_work += float(item[7])
+                print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]) + "\n")
             else:
                 workday += 1
-                external_work += float("%.2f" % (0 if float(item[6]) - 8 < 0 else float(item[6]) - 8))
+                external_work += float("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))
 
                 print_lst.append(
-                    str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[6] + "\t" + str(
-                        "%.2f" % (0 if float(item[6]) - 8 < 0 else float(item[6]) - 8))) + "\n")
+                    str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + str(
+                        "%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))) + "\n")
     print("workday", workday)
 
     print("external_work ", str("%.2f" % external_work))
@@ -164,7 +178,7 @@ def getChromeVersion():
         return version_re.findall(value)[0]  # 返回前3位版本号
     except WindowsError as e:
         # 没有安装chrome浏览器
-        return "1.1.1"
+        return "-1"
 
 
 # 查询Chromedriver版本
@@ -179,14 +193,13 @@ def getChromeDriverVersion():
 
 
 # 检查chromedirver用不用更新
-def checkChromeDriverUpdate():
-    chrome_version = getChromeVersion()
+def checkChromeDriverUpdate(chrome_version):
     print(f'当前chrome版本: {chrome_version}')
     driver_version = getChromeDriverVersion()
     print(f'当前chromedriver版本: {driver_version}')
-    # if chrome_version == driver_version:
-    #     print("版本兼容，无需更新.")
-    #     return
+    if chrome_version == driver_version:
+        print("版本兼容，无需更新.")
+        return
     print("chromedriver版本与chrome浏览器不兼容，更新中>>>")
     try:
         getLatestChromeDriver(chrome_version)
@@ -200,8 +213,7 @@ def checkChromeDriverUpdate():
 # 获取该chrome版本的最新driver版本号
 def getLatestChromeDriver(version):
     if str(version).find("116") != -1 or version.find("115") != -1:
-        download_url = "https://registry.npmmirror.com/-/binary/chromedriver/114.0.5735.90/chromedriver_win32.zip"
-        print(f"与当前chrome匹配的最新chromedriver版本为: 116.0.5845.96")
+        return
     else:
         url = f"{base_url}LATEST_RELEASE_{version}"
         latest_version = requests.get(url).text
@@ -227,9 +239,15 @@ if __name__ == '__main__':
     base_url = 'http://npm.taobao.org/mirrors/chromedriver/'
     # 匹配前3位版本号的正则表达式
     version_re = re.compile(r'^[1-9]\d*\.\d*.\d*')
-    checkChromeDriverUpdate()
+    chrome_version = getChromeVersion()
+    checkChromeDriverUpdate(chrome_version)
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    executable_path = os.path.join(base_path, 'ChromeDriver.exe')
+    if chrome_version.find("116") != -1:
+        executable_path = os.path.join(base_path, 'chromedriver_116.exe')
+    elif chrome_version.find("115") != -1:
+        executable_path = os.path.join(base_path, 'chromedriver_115.exe')
+    else:
+        executable_path = os.path.join(base_path, 'ChromeDriver.exe')
     browser = webdriver.Chrome(service=Service(executable_path=executable_path))
     auto_login()
     browser.quit()
