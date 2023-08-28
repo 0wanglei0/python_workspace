@@ -11,3 +11,4 @@ build/
 dist/
 __pycache__
 demo/test_chrome.spec
+*.spec
