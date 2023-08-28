@@ -10,3 +10,4 @@ lessons/__init__.py
 build/
 dist/
 __pycache__
+demo/test_chrome.spec
