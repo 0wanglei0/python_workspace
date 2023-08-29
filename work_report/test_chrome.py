@@ -131,15 +131,15 @@ def print_to_file(table_dic):
             workday += 1
             if item[2] == "事假":
                 holiday_time += float(item[6])
-            current_external_work_time = "%.2f" % (float(item[7]) + float(item[6]) - 8)
-            external_work += float(current_external_work_time)
+            current_external_work_time = 0 if (float(item[7]) + float(item[6]) - 8) < 0 else float(item[7]) + float(item[6]) - 8
+            external_work += current_external_work_time
             # print("current_external_work_time", current_external_work_time)
             # print("external_work", external_work)
             total_work = float(item[7]) + float(item[6])
             standard_time = 0 if 8 - total_work < 0 else 8 - float(total_work)
 
             print_lst.append(str(item[0] + "\t" + item[2] + "\t" + item[6] + "\t" + item[7] + "\t"
-                                 + str(current_external_work_time) + "\t"
+                                 + str("%.2f" % current_external_work_time) + "\t"
                                  + str("%.2f" % standard_time) + "\n"))
         else:
             this_date = item[0].split("-")
@@ -200,10 +200,9 @@ def get_current_default_browser():
         auto_login(browser)
         browser.quit()
     except Exception as e:
-        # log_file = open("error.log", "a+")
-        # print(e, file=log_file)
-        # log_file.close()
-        print(e)
+        log_file = open("error.log", "a+")
+        print(e, file=log_file)
+        log_file.close()
 
 def get_current_system():
     return platform.system()
