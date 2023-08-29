@@ -32,7 +32,7 @@ import xlrd
 # pd.read_excel()
 
 data = ["a", "b", "c"]
-series = pd.Series(data, index=[1,2,3])
+series = pd.Series(data, index=[1, 2, 3])
 print(series)
 series = pd.Series(data)
 print(series)
