@@ -1,19 +1,17 @@
 import calendar
-import os
-import sys
+import platform
 
-import requests
 import time
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-import os
 
-import re  # 正则
-import winreg  # windows注册表
-import zipfile  # 压缩解压
 import requests
+
+import judge_browsers as judge
+import chrome_driver_update as cdu
+
 
 headers = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -22,7 +20,7 @@ headers = {
 }
 
 
-def test_url():
+def test_url_cookies():
     url = "http://redmine-pa.mxnavi.com/login?username=wangleic&password=Xiaoting521&login=%E7%99%BB%E5%BD%95"
     response = requests.post(url, headers=headers)
     print(response)
@@ -30,13 +28,11 @@ def test_url():
     print(cookies)
 
 
-def auto_login():
-    # print(1)
-
+def auto_login(browser):
     today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
     print(today)
     first_day_of_month = time.strftime("%Y-%m", time.localtime(time.time()))
-    first_day_of_month = first_day_of_month + "-1"
+    first_day_of_month = first_day_of_month + "-01"
     print(first_day_of_month)
     url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + str(
         first_day_of_month) + "&time_end%5B%5D=" + today + "&commit=%E6%9F%A5%E8%AF%A2"
@@ -58,12 +54,14 @@ def auto_login():
         else:
             username = lines[0].replace("\n", "")
             password = lines[1].replace("\n", "")
-            print(username)
-            print(password)
+            # print(username)
+            # print(password)
 
     if username_element:
         username_element.send_keys(username)
+        time.sleep(1)
         password_element.send_keys(password)
+        time.sleep(1)
         login_button.click()
 
     time.sleep(5)
@@ -109,13 +107,25 @@ def auto_login():
 
 def print_to_file(table_dic):
     # print(table_dic)
-    print_lst = [str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\n")]
+    print_lst = [str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "漏填日报" + "\n")]
     fill_value = table_dic.get("values")
     workday = 0
     external_work = float(0)
     holiday_time = 0
     for item in fill_value:
         if len(item) != 13:
+            if len(item) == 10 and item[4] == '' and item[7] == '':
+                if item[1] == "事假":
+                    holiday_time += float(item[5])
+                last_item = print_lst[len(print_lst) - 1].split("\t")
+                current_day_total = float(item[5]) + float(last_item[3])
+                new_item_string = last_item[0] + "\t" + item[1] + "\t" + item[5]\
+                                  + "\t" + last_item[3]\
+                                  + "\t" + str("%.2f" % (current_day_total - 8))\
+                                  + "\t" + str("%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total)))
+                print_lst[len(print_lst) - 1] = new_item_string + "\n"
+                print("last_item", new_item_string)
+                print("item", item)
             continue
         if item[5] == '':
             workday += 1
@@ -123,10 +133,14 @@ def print_to_file(table_dic):
                 holiday_time += float(item[6])
             current_external_work_time = "%.2f" % (float(item[7]) + float(item[6]) - 8)
             external_work += float(current_external_work_time)
-            print("current_external_work_time", current_external_work_time)
-            print("external_work", external_work)
+            # print("current_external_work_time", current_external_work_time)
+            # print("external_work", external_work)
+            total_work = float(item[7]) + float(item[6])
+            standard_time = 0 if 8 - total_work < 0 else 8 - float(total_work)
+
             print_lst.append(str(item[0] + "\t" + item[2] + "\t" + item[6] + "\t" + item[7] + "\t"
-                                 + str(current_external_work_time) + "\n"))
+                                 + str(current_external_work_time) + "\t"
+                                 + str("%.2f" % standard_time) + "\n"))
         else:
             this_date = item[0].split("-")
             year = int(this_date[0])
@@ -139,10 +153,11 @@ def print_to_file(table_dic):
             else:
                 workday += 1
                 external_work += float("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))
-
                 print_lst.append(
                     str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + str(
-                        "%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))) + "\n")
+                        "%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8)))
+                    + "\t"
+                    + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7]))) + "\n")
     print("workday", workday)
 
     print("external_work ", str("%.2f" % external_work))
@@ -170,87 +185,31 @@ def print_to_file(table_dic):
             wr.write(str(value) + "\t")
         wr.write("\n")
 
-# 通过注册表查询chrome版本
-def getChromeVersion():
-    try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\\Google\\Chrome\\BLBeacon')
-        value, t = winreg.QueryValueEx(key, 'version')
-        return version_re.findall(value)[0]  # 返回前3位版本号
-    except WindowsError as e:
-        # 没有安装chrome浏览器
-        return "-1"
 
-
-# 查询Chromedriver版本
-def getChromeDriverVersion():
-    outstd2 = os.popen('chromedriver --version').read()
-    try:
-        version = outstd2.split(' ')[1]
-        version = ".".join(version.split(".")[:-1])
-        return version
-    except Exception as e:
-        return "0.0.0"
-
-
-# 检查chromedirver用不用更新
-def checkChromeDriverUpdate(chrome_version):
-    print(f'当前chrome版本: {chrome_version}')
-    driver_version = getChromeDriverVersion()
-    print(f'当前chromedriver版本: {driver_version}')
-    if chrome_version == driver_version:
-        print("版本兼容，无需更新.")
-        return
-    print("chromedriver版本与chrome浏览器不兼容，更新中>>>")
-    try:
-        getLatestChromeDriver(chrome_version)
-        print("chromedriver更新成功!")
-    except requests.exceptions.Timeout:
-        print("chromedriver下载失败，请检查网络后重试！")
-    except Exception as e:
-        print(f"chromedriver未知原因更新失败: {e}")
-
-
-# 获取该chrome版本的最新driver版本号
-def getLatestChromeDriver(version):
-    if str(version).find("116") != -1 or version.find("115") != -1:
-        return
+def get_current_default_browser():
+    print("start")
+    print(get_current_system() == "Windows")
+    print(judge.init_edge())
+    if get_current_system() == "Windows" and judge.init_edge():
+        browser = webdriver.Edge()
+        print("使用Edge")
     else:
-        url = f"{base_url}LATEST_RELEASE_{version}"
-        latest_version = requests.get(url).text
-        print(f"与当前chrome匹配的最新chromedriver版本为: {latest_version}")
-        # 下载chromedriver
-        print("开始下载chromedriver...")
-        download_url = f"{base_url}{latest_version}/chromedriver_win32.zip"
-    # 下载chromedriver
-    print("开始下载chromedriver...")
-    file = requests.get(download_url)
-    with open("chromedriver.zip", 'wb') as zip_file:  # 保存文件到脚本所在目录
-        zip_file.write(file.content)
-    print("下载完成.")
-    # 解压
-    f = zipfile.ZipFile("chromedriver.zip", 'r')
-    for file in f.namelist():
-        f.extract(file)
-    print("解压完成.")
+        browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
 
+    try:
+        auto_login(browser)
+        browser.quit()
+    except Exception as e:
+        # log_file = open("error.log", "a+")
+        # print(e, file=log_file)
+        # log_file.close()
+        print(e)
+
+def get_current_system():
+    return platform.system()
 
 if __name__ == '__main__':
-    # 下载chromedirver的镜像地址
-    base_url = 'http://npm.taobao.org/mirrors/chromedriver/'
-    # 匹配前3位版本号的正则表达式
-    version_re = re.compile(r'^[1-9]\d*\.\d*.\d*')
-    chrome_version = getChromeVersion()
-    checkChromeDriverUpdate(chrome_version)
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    if chrome_version.find("116") != -1:
-        executable_path = os.path.join(base_path, 'chromedriver_116.exe')
-    elif chrome_version.find("115") != -1:
-        executable_path = os.path.join(base_path, 'chromedriver_115.exe')
-    else:
-        executable_path = os.path.join(base_path, 'ChromeDriver.exe')
-    browser = webdriver.Chrome(service=Service(executable_path=executable_path))
-    auto_login()
-    browser.quit()
-    quit()
+    get_current_default_browser()
+
 
 # test_url()

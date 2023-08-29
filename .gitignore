@@ -12,3 +12,16 @@ dist/
 __pycache__
 demo/test_chrome.spec
 *.spec
+demo/chromedriver_win32 (1).zip
+demo/save_some_string.py
+demo/user_info.txt
+demo/work_report.xlsx
+work_report/chromedriver.exe
+work_report/chromedriver.exe
+work_report/chromedriver.exe
+work_report/chromedriver.zip
+work_report/LICENSE.chromedriver
+work_report/user_info.txt
+work_report/work_report.xlsx
+work_report/chromedriver.exe
+work_report/error.log
