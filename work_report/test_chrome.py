@@ -244,7 +244,7 @@ def show_work_report(work_list):
     new_list = work_list[1::]
     for item in new_list:
         field_item = item.replace("\n", "").split("\t")
-        print(field_item)
+        # print(field_item)
         lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6]]
         tb.add_row(lst)
     print(tb)
