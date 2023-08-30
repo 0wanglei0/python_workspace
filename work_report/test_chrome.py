@@ -1,6 +1,6 @@
 import calendar
-import datetime
 import platform
+import sys
 
 import time
 from bs4 import BeautifulSoup
@@ -9,10 +9,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 import requests
+import getpass
 
 import judge_browsers as judge
 import chrome_driver_update as cdu
 import module_weekdays as weekdays
+import module_crypto as crypto
+import prettytable as ptb
 
 
 headers = {
@@ -23,7 +26,7 @@ headers = {
 
 
 def test_url_cookies():
-    url = "http://redmine-pa.mxnavi.com/login?username=wangleic&password=Xiaoting521&login=%E7%99%BB%E5%BD%95"
+    url = "http://redmine-pa.mxnavi.com/login?username=&password=&login=%E7%99%BB%E5%BD%95"
     response = requests.post(url, headers=headers)
     print(response)
     cookies = requests.utils.dict_from_cookiejar(response.cookies)
@@ -37,6 +40,7 @@ def auto_login(browser):
         days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
     browser.get(url)
 
+    time.sleep(3)
     username_element = browser.find_element(By.ID, "username")
     password_element = browser.find_element(By.ID, "password")
     login_button = browser.find_element(By.NAME, "login")
@@ -47,12 +51,14 @@ def auto_login(browser):
         lines = user_info.readlines()
         if not lines:
             username = input("用户名:")
-            password = input("password:")
+            password = getpass.getpass("password:")
+            encrypt_pass = crypto.aes_encrypt(password)
             print(username, file=user_info)
-            print(password, file=user_info)
+            print(encrypt_pass, file=user_info)
         else:
             username = lines[0].replace("\n", "")
             password = lines[1].replace("\n", "")
+            password = crypto.aes_decrypt(password)
             # print(username)
             # print(password)
 
@@ -62,6 +68,8 @@ def auto_login(browser):
         password_element.send_keys(password)
         time.sleep(1)
         login_button.click()
+    else:
+        raise Exception("browser is not load right, please retry")
 
     time.sleep(5)
 
@@ -114,18 +122,21 @@ def print_to_file(table_dic):
     for item in fill_value:
         if len(item) != 13:
             if len(item) == 10 and item[4] == '' and item[7] == '':
-                if item[1] == "事假":
+                if item[1] == "事假" or item[1] == "病假":
                     holiday_time += float(item[5])
                 last_item = print_lst[len(print_lst) - 1].split("\t")
                 current_day_total = float(item[5]) + float(last_item[3])
-                current_holiday_type = last_item[1]
+                current_holiday_type = item[1] if last_item[1] == "" else last_item[1]
                 current_holiday_time = item[5]
-                print("current_holiday_time 1", current_holiday_time)
+                last_external_work_time = float(last_item[4])
+
+                # print("current_holiday_time 1", current_holiday_time)
                 if last_item[1] != "":
                     current_holiday_type = last_item[1] + "+" + item[1]
-                    current_holiday_time = f"{0} + {1} = {2}".format(last_item[2], item[5], float(last_item[2]) + float(item[5]))
+                    current_holiday_time = f"{last_item[2]} + {item[5]} = {float(last_item[2]) + float(item[5])}"
                     current_day_total += float(last_item[2])
 
+                external_work = external_work - last_external_work_time + current_day_total - 8
                 new_item_string = last_item[0] + "\t" + current_holiday_type + "\t" + current_holiday_time \
                                   + "\t" + last_item[3] \
                                   + "\t" + str("%.2f" % (current_day_total - 8)) \
@@ -138,7 +149,7 @@ def print_to_file(table_dic):
             continue
         if item[5] == '':
             workday += 1
-            if item[2] == "事假":
+            if item[2] == "事假" or item[2] == "病假":
                 holiday_time += float(item[6])
             current_external_work_time = 0 if (float(item[7]) + float(item[6]) - 8) < 0 else float(item[7]) + float(item[6]) - 8
             external_work += current_external_work_time
@@ -159,7 +170,7 @@ def print_to_file(table_dic):
             weekday = calendar.weekday(year, month, day)
             if weekday == 6 or weekday == 5:
                 external_work += float(item[7])
-                print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]) + "\n")
+                print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]) + "\t" + "" + "\t" + "" + "\n")
             else:
                 workday += 1
                 external_work += float("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))
@@ -180,18 +191,12 @@ def print_to_file(table_dic):
                        str("%.2f" % external_work), holiday_time, holiday_hour,
                        str("%.2f" % (0 if holiday_hour - holiday_time < 0 else holiday_hour - holiday_time)),
                        "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour))]
+    show_work_report(print_lst)
+    show_work_report_analysis(calculate_value)
+
     with open("work_report.xlsx", "w+", encoding="utf8") as wr:
-            # wr.write(string)
-        for day in weekdays.get_workdays():
-            data_format = day.strftime('%Y-%m-%d')
-            exist_flag = False
-            for string in print_lst:
-                if data_format in string:
-                    wr.write(string)
-                    exist_flag = True
-                    break
-            if not exist_flag:
-                wr.write(f"{data_format}\t\t\t0\t0\t0\t8\n")
+        for string in print_lst:
+            wr.write(string)
 
         wr.write("\n")
         wr.write("\n")
@@ -226,6 +231,26 @@ def get_current_default_browser():
 def get_current_system():
     return platform.system()
 
+
+def show_work_report(work_list):
+    tb = ptb.PrettyTable()
+    tb.field_names = ["日期", "请假类型", "请假时间", "工时", "加班时间", "在岗时长", "漏填日报"]
+    new_list = work_list[1::]
+    for item in new_list:
+        field_item = item.replace("\n", "").split("\t")
+        print(field_item)
+        lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6]]
+        tb.add_row(lst)
+    print(tb)
+
+
+def show_work_report_analysis(work_total):
+    tb_total = ptb.PrettyTable()
+    tb_total.field_names = ["当前负荷", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
+    tb_total.add_row(work_total)
+    print(tb_total)
+
+
 # ios 运行可能要在mac上运行pyinstaler
 # windows
 #  ..\python_workspace\Scripts\pyinstaller.exe -F .\test_chrome.py
@@ -233,6 +258,8 @@ def get_current_system():
 #  --add-binary "chromedriver_115.exe;."
 if __name__ == '__main__':
     get_current_default_browser()
-
+    while True:
+        if input("输入Enter退出") + "1":
+            sys.exit()
 
 # test_url()

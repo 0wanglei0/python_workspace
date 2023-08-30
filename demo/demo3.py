@@ -8,6 +8,7 @@ def show_ticket(row_num):
     for i in range(row_num):
         lst = [f"第{i + 1}行", "有票", "有票", "有票", "有票", "有票"]
         tb.add_row(lst)
+    print(tb)
 
 def order_ticket(row_num, seat_num):
     row = tb[row_num - 1]
@@ -19,11 +20,11 @@ def order_ticket(row_num, seat_num):
     print(tb)
 
 if __name__ == "__main__":
-    # show_ticket(10)
+    show_ticket(10)
     # order_ticket(5, 2)
     # date = datetime.datetime.strptime("2005-03-08", "%Y-%m-%d")
     # print(date)
     # print(str(date + datetime.timedelta(days=3)).split(" ")[0])
     # print(time.time())
     # print(time.localtime(time.time()))
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())))
+    # print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())))
