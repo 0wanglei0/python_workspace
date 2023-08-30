@@ -72,9 +72,12 @@ def auto_login(browser):
         raise Exception("browser is not load right, please retry")
 
     time.sleep(5)
-
-    # print(browser.get_cookies())
     cookie = browser.get_cookies()[0].get("value")
+    get_work_time(cookie, url)
+
+
+def get_work_time(cookie, url):
+    # print(browser.get_cookies())
     headers["Cookie"] = "_redmine_session=" + cookie
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -109,10 +112,10 @@ def auto_login(browser):
         return
     table_dic["header"] = table_headers[0]
     table_dic["values"] = table_values
-    print_to_file(table_dic)
+    total_time_to_file(table_dic)
 
 
-def print_to_file(table_dic):
+def total_time_to_file(table_dic):
     # print(table_dic)
     print_lst = [str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长" + "\t" + "漏填日报" + "\n")]
     fill_value = table_dic.get("values")
@@ -193,7 +196,11 @@ def print_to_file(table_dic):
                        "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour))]
     show_work_report(print_lst)
     show_work_report_analysis(calculate_value)
+    write_to_file(print_lst, calculate_header, calculate_value)
 
+
+
+def write_to_file(print_lst, calculate_header, calculate_value):
     with open("work_report.xlsx", "w+", encoding="utf8") as wr:
         for string in print_lst:
             wr.write(string)
@@ -208,7 +215,6 @@ def print_to_file(table_dic):
         for value in calculate_value:
             wr.write(str(value) + "\t")
         wr.write("\n")
-
 
 def get_current_default_browser():
     print("start")
