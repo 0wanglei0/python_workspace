@@ -1,4 +1,5 @@
 import calendar
+import datetime
 import platform
 
 import time
@@ -11,6 +12,7 @@ import requests
 
 import judge_browsers as judge
 import chrome_driver_update as cdu
+import module_weekdays as weekdays
 
 
 headers = {
@@ -29,13 +31,10 @@ def test_url_cookies():
 
 
 def auto_login(browser):
-    today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
-    print(today)
-    first_day_of_month = time.strftime("%Y-%m", time.localtime(time.time()))
-    first_day_of_month = first_day_of_month + "-01"
-    print(first_day_of_month)
-    url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + str(
-        first_day_of_month) + "&time_end%5B%5D=" + today + "&commit=%E6%9F%A5%E8%AF%A2"
+    days = weekdays.get_start_end_days_string()
+    # print(days)
+    url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
+        days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
     browser.get(url)
 
     username_element = browser.find_element(By.ID, "username")
@@ -107,7 +106,7 @@ def auto_login(browser):
 
 def print_to_file(table_dic):
     # print(table_dic)
-    print_lst = [str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "漏填日报" + "\n")]
+    print_lst = [str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长" + "\t" + "漏填日报" + "\n")]
     fill_value = table_dic.get("values")
     workday = 0
     external_work = float(0)
@@ -119,13 +118,23 @@ def print_to_file(table_dic):
                     holiday_time += float(item[5])
                 last_item = print_lst[len(print_lst) - 1].split("\t")
                 current_day_total = float(item[5]) + float(last_item[3])
-                new_item_string = last_item[0] + "\t" + item[1] + "\t" + item[5]\
-                                  + "\t" + last_item[3]\
-                                  + "\t" + str("%.2f" % (current_day_total - 8))\
-                                  + "\t" + str("%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total)))
+                current_holiday_type = last_item[1]
+                current_holiday_time = item[5]
+                print("current_holiday_time 1", current_holiday_time)
+                if last_item[1] != "":
+                    current_holiday_type = last_item[1] + "+" + item[1]
+                    current_holiday_time = f"{0} + {1} = {2}".format(last_item[2], item[5], float(last_item[2]) + float(item[5]))
+                    current_day_total += float(last_item[2])
+
+                new_item_string = last_item[0] + "\t" + current_holiday_type + "\t" + current_holiday_time \
+                                  + "\t" + last_item[3] \
+                                  + "\t" + str("%.2f" % (current_day_total - 8)) \
+                                  + "\t" + last_item[5] \
+                                  + "\t" + str(
+                    "%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total)))
                 print_lst[len(print_lst) - 1] = new_item_string + "\n"
-                print("last_item", new_item_string)
-                print("item", item)
+                # print("last_item", new_item_string)
+                # print("item", item)
             continue
         if item[5] == '':
             workday += 1
@@ -140,6 +149,7 @@ def print_to_file(table_dic):
 
             print_lst.append(str(item[0] + "\t" + item[2] + "\t" + item[6] + "\t" + item[7] + "\t"
                                  + str("%.2f" % current_external_work_time) + "\t"
+                                 + item[8] + "\t"
                                  + str("%.2f" % standard_time) + "\n"))
         else:
             this_date = item[0].split("-")
@@ -154,16 +164,16 @@ def print_to_file(table_dic):
                 workday += 1
                 external_work += float("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))
                 print_lst.append(
-                    str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + str(
-                        "%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8)))
-                    + "\t"
-                    + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7]))) + "\n")
+                    str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7]
+                        + "\t" + str("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8)))
+                        + "\t" + item[8]
+                        + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7]))) + "\n")
     print("workday", workday)
 
     print("external_work ", str("%.2f" % external_work))
     print("holiday_time", holiday_time)
     holiday_hour = external_work // 20 * 8
-    expect_worktime = workday * 8
+    expect_worktime = len(weekdays.get_workdays()) * 8
 
     calculate_header = ["当前负荷", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)),
@@ -171,8 +181,17 @@ def print_to_file(table_dic):
                        str("%.2f" % (0 if holiday_hour - holiday_time < 0 else holiday_hour - holiday_time)),
                        "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour))]
     with open("work_report.xlsx", "w+", encoding="utf8") as wr:
-        for string in print_lst:
-            wr.write(string)
+            # wr.write(string)
+        for day in weekdays.get_workdays():
+            data_format = day.strftime('%Y-%m-%d')
+            exist_flag = False
+            for string in print_lst:
+                if data_format in string:
+                    wr.write(string)
+                    exist_flag = True
+                    break
+            if not exist_flag:
+                wr.write(f"{data_format}\t\t\t0\t0\t0\t8\n")
 
         wr.write("\n")
         wr.write("\n")
@@ -188,8 +207,8 @@ def print_to_file(table_dic):
 
 def get_current_default_browser():
     print("start")
-    print(get_current_system() == "Windows")
-    print(judge.init_edge())
+    # print(get_current_system() == "Windows")
+    # print(judge.init_edge())
     if get_current_system() == "Windows" and judge.init_edge():
         browser = webdriver.Edge()
         print("使用Edge")
@@ -201,12 +220,17 @@ def get_current_default_browser():
         browser.quit()
     except Exception as e:
         log_file = open("error.log", "a+")
-        print(e, file=log_file)
+        print(time.strftime("%Y-%m-%d %H:%M:%S.sss", time.localtime(time.time())), e, file=log_file)
         log_file.close()
 
 def get_current_system():
     return platform.system()
 
+# ios 运行可能要在mac上运行pyinstaler
+# windows
+#  ..\python_workspace\Scripts\pyinstaller.exe -F .\test_chrome.py
+#  --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;."
+#  --add-binary "chromedriver_115.exe;."
 if __name__ == '__main__':
     get_current_default_browser()
 
