@@ -1,8 +1,10 @@
 import calendar
 import platform
 import sys
-
+import datetime
 import time
+
+import execjs
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -33,17 +35,17 @@ def test_url_cookies():
     print(cookies)
 
 
-def auto_login(browser):
+def auto_login(local_browser):
     days = weekdays.get_start_end_days_string()
     # print(days)
     url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
         days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
-    browser.get(url)
+    local_browser.get(url)
 
     time.sleep(3)
-    username_element = browser.find_element(By.ID, "username")
-    password_element = browser.find_element(By.ID, "password")
-    login_button = browser.find_element(By.NAME, "login")
+    username_element = local_browser.find_element(By.ID, "username")
+    password_element = local_browser.find_element(By.ID, "password")
+    login_button = local_browser.find_element(By.NAME, "login")
     # print(username)
     # print(password)
     with open("user_info.txt", "a+", encoding="utf8") as user_info:
@@ -72,13 +74,14 @@ def auto_login(browser):
         raise Exception("browser is not load right, please retry")
 
     time.sleep(5)
-    cookie = browser.get_cookies()[0].get("value")
-    get_work_time(cookie, url)
+    return [local_browser, url]
 
-
-def get_work_time(cookie, url):
-    # print(browser.get_cookies())
+def set_cookie(local_browser):
+    cookie = local_browser.get_cookies()[0].get("value")
     headers["Cookie"] = "_redmine_session=" + cookie
+
+def get_work_time(url):
+    # print(browser.get_cookies())
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -112,8 +115,7 @@ def get_work_time(cookie, url):
         return
     table_dic["header"] = table_headers[0]
     table_dic["values"] = table_values
-    total_time_to_file(table_dic)
-
+    return table_dic
 
 def total_time_to_file(table_dic):
     # print(table_dic)
@@ -194,14 +196,12 @@ def total_time_to_file(table_dic):
                        str("%.2f" % external_work), holiday_time, holiday_hour,
                        str("%.2f" % (0 if holiday_hour - holiday_time < 0 else holiday_hour - holiday_time)),
                        "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour))]
-    show_work_report(print_lst)
-    show_work_report_analysis(calculate_value)
-    write_to_file(print_lst, calculate_header, calculate_value)
 
-
+    return [print_lst, calculate_header, calculate_value]
 
 def write_to_file(print_lst, calculate_header, calculate_value):
     with open("work_report.xlsx", "w+", encoding="utf8") as wr:
+        # wr.write(print_lst.replace(",", "\t"))
         for string in print_lst:
             wr.write(string)
 
@@ -216,37 +216,135 @@ def write_to_file(print_lst, calculate_header, calculate_value):
             wr.write(str(value) + "\t")
         wr.write("\n")
 
+def calculate_loss_time(loss_work_time):
+    if loss_work_time == {}:
+        print("work report complete")
+        return
+
+    _key_for_choose = []
+    _keys = list(loss_work_time.keys())
+    chooses = []
+    # print(_keys)
+    for index in range(len(_keys)):
+        choose = f"{index}.{_keys[index]}"
+        chooses.append(choose)
+        _key_for_choose.append(_keys[index])
+    return [_keys, _key_for_choose, chooses]
+
+
+def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
+    # print("_keys", _keys)
+    # print("_key_for_choose", _key_for_choose)
+    # print("_chooses", _chooses)
+    while True:
+        print(_chooses)
+        choose_index = eval(input("请选择填写日报日期序号："))
+        if choose_index < 0 or choose_index > len(_key_for_choose):
+            break
+
+        choose_key = _key_for_choose[choose_index]
+        choose_value = loss_work_time_dict.get(choose_key)
+        print(choose_value)
+        all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
+        local_browser.get(all_issues_url)
+        time.sleep(2)
+        issue_id = input("请输入要登记工时的任务id：")
+        url = f"https://redmine-pa.mxnavi.com/issues/{issue_id}/time_entries/new"
+        local_browser.get(url)
+
+        date_input = local_browser.find_element(By.ID, "time_entry_spent_on")
+        use_js_change_value(local_browser, "time_entry_spent_on", _keys[choose_index])
+        time.sleep(1)
+
+        work_hours_input = local_browser.find_element(By.ID, "time_entry_hours")
+        comments_input = local_browser.find_element(By.ID, "time_entry_comments")
+        day_logged_time_info = local_browser.find_element(By.ID, "day_logged_time")
+        commit_button = local_browser.find_element(By.NAME, "commit")
+        continue_button = local_browser.find_element(By.NAME, "continue")
+
+        day_logged_time = day_logged_time_info.text
+        logged_time = day_logged_time[day_logged_time.index(": ") + 2:day_logged_time.index(","):]
+        total_time = day_logged_time[day_logged_time.index("间：") + 2:day_logged_time.index("(单位")]
+        print(day_logged_time)
+
+        input_work_hours = input("请输入要登记的时间(可空，填入全部在岗时间)：")
+        input_work_comments = input("请输入要登记的注释（可空）：")
+        if input_work_hours == "":
+            residue_time = float(total_time) - float(logged_time)
+            if residue_time < 0:
+                print("日报已填写")
+                continue
+            input_work_hours = str("%.2f" % (float(total_time) - float(logged_time)))
+
+        if date_input:
+            work_hours_input.send_keys(input_work_hours)
+            comments_input.send_keys(input_work_comments)
+            if eval(input_work_hours) < float(total_time):
+                continue_button.click()
+            else:
+                commit_button.click()
+
+        time.sleep(3)
+        residue_time = float(total_time) - float(logged_time) - float(input_work_hours)
+        if len(key_for_choose) == 0 and residue_time == 0:
+            key_for_choose.pop(choose_index)
+            print("日报填写完成，结束运行")
+            break
+        else:
+            is_goon = input("是否继续填写日报 Y/N")
+            if is_goon == "Y" or is_goon == "y":
+                continue
+            else:
+                print("日报填写完成，结束运行")
+                break
+
+def use_js_change_value(_browser, element_id, value):
+    js = f"""
+        element = document.getElementById("{element_id}")
+        element.value = '{value}'
+    """
+    #
+    # print(js)
+    # print(value)
+    _browser.execute_script(js)
+
 def get_current_default_browser():
     print("start")
     # print(get_current_system() == "Windows")
     # print(judge.init_edge())
     if get_current_system() == "Windows" and judge.init_edge():
-        browser = webdriver.Edge()
+        this_browser = webdriver.Edge()
         print("使用Edge")
     else:
-        browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
+        this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
 
-    try:
-        auto_login(browser)
-        browser.quit()
-    except Exception as e:
-        log_file = open("error.log", "a+")
-        print(time.strftime("%Y-%m-%d %H:%M:%S.sss", time.localtime(time.time())), e, file=log_file)
-        log_file.close()
+    return this_browser
 
 def get_current_system():
     return platform.system()
 
 
 def show_work_report(work_list):
+    # print(work_list)
     tb = ptb.PrettyTable()
     tb.field_names = ["日期", "请假类型", "请假时间", "工时", "加班时间", "在岗时长", "漏填日报"]
     new_list = work_list[1::]
+    work_days = weekdays.get_workdays()
     for item in new_list:
         field_item = item.replace("\n", "").split("\t")
         # print(field_item)
         lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6]]
         tb.add_row(lst)
+        date_date = field_item[0].split("-")
+        date = datetime.date(int(date_date[0]), int(date_date[1]), int(date_date[2]))
+        if date in work_days:
+            if field_item[6] != "" and field_item[6] != "0.00":
+                loss_work_time_dict[field_item[0]] = [field_item[2], field_item[3], field_item[5]]
+            work_days.pop(work_days.index(date))
+    if len(work_days) != 0:
+        for item in work_days:
+            loss_work_time_dict[item.strftime("%Y-%m-%d")] = []
+    print(loss_work_time_dict)
     print(tb)
 
 
@@ -263,7 +361,45 @@ def show_work_report_analysis(work_total):
 #  --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;."
 #  --add-binary "chromedriver_115.exe;."
 if __name__ == '__main__':
-    get_current_default_browser()
+    loss_work_time_dict = {}
+
+    try:
+        browser = get_current_default_browser()
+        browser, origin_url = auto_login(browser)
+        set_cookie(browser)
+        work_time_dict = get_work_time(origin_url)
+        work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+        show_work_report(work_time_info)
+        # print(table_csv_string)
+        show_work_report_analysis(work_time_value)
+        # write_to_file(table_csv_string, calculate_header, calculate_value)
+        write_to_file(work_time_info, work_time_header, work_time_value)
+
+        # work_list = ['日期\t请假类型\t请假时间\t工时\t加班时间\t在岗时长\t漏填日报\n', '2023-08-01\t\t\t11.4\t3.40\t11.41\t0.00\n', '2023-08-02\t串休假\t1.0\t8.1\t1.10\t8.1\t0.00\n', '2023-08-03\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-04\t\t\t9.18\t1.18\t9.18\t0.00\n', '2023-08-07\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-08\t\t\t8.15\t0.15\t8.15\t0.00\n', '2023-08-09\t\t\t11.0\t3.00\t11.05\t0.00\n', '2023-08-10\t\t\t8.3\t0.30\t8.33\t0.00\n', '2023-08-11\t事假\t1.0\t7.5\t0.50\t4.55\t0.00\n', '2023-08-14\t\t\t12.0\t4.00\t12.06\t0.00\n', '2023-08-15\t串休假\t1.0\t8.2\t1.20\t8.25\t0.00\n', '2023-08-16\t\t\t8.3\t0.30\t8.36\t0.00\n', '2023-08-17\t事假\t1.0\t7.6\t0.60\t7.66\t0.00\n', '2023-08-18\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-19\t\t\t2.0\t2.0\t\t\n', '2023-08-21\t\t\t9.1\t1.10\t9.13\t0.00\n', '2023-08-22\t事假\t1.0\t9.16\t2.16\t9.16\t0.00\n', '2023-08-23\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-24\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-25\t事假\t5.0\t3.0\t0.00\t3.0\t0.00\n', '2023-08-28\t\t\t8.1\t0.10\t8.11\t0.00\n', '2023-08-29\t\t\t8.1\t0.10\t8.16\t0.00\n', '2023-08-30\t年假\t1.0\t0.0\t0.00\t7.33\t7.00\n']
+        # show_work_report(work_list)
+
+        keys, key_for_choose, _chooses = calculate_loss_time(loss_work_time_dict)
+        # print("_keys", keys)
+        # print("_key_for_choose", key_for_choose)
+        # print("_chooses", _chooses)
+        log_work_time(browser, keys, key_for_choose, _chooses)
+
+        re_cat = input("是否重新查看工作报告：Y/N")
+        if re_cat == "Y" or re_cat == "y":
+            work_time_dict = get_work_time(origin_url)
+            work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+            show_work_report(work_time_info)
+            # print(table_csv_string)
+            show_work_report_analysis(work_time_value)
+            # write_to_file(table_csv_string, calculate_header, calculate_value)
+            write_to_file(work_time_info, work_time_header, work_time_value)
+
+        browser.quit()
+    except Exception as e:
+        log_file = open("error.log", "a+")
+        print(time.strftime("%Y-%m-%d %H:%M:%S.sss", time.localtime(time.time())), e, file=log_file)
+        log_file.close()
+
     while True:
         if input("输入Enter退出") + "1":
             sys.exit()
