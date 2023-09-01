@@ -17,6 +17,36 @@ def get_start_end_days_string():
     day_format = '%Y-%m-%d'
     return [days[0].strftime(day_format), days[1].strftime(day_format)]
 
+
+def get_first_and_end_day_by_month(input_month):
+    today_date = get_today_date()
+    target_year = today_date.year
+    target_month = today_date.month
+    if input_month != "":
+        if "." in input_month:
+            year_month = input_month.split(".")
+            target_year = int(year_month[0])
+            target_month = int(year_month[1])
+        else:
+            target_month = int(input_month)
+
+        if target_month > 12:
+            target_month = today_date.month
+
+    # print(target_year)
+    # print(target_month)
+    last_day = calendar.monthrange(target_year, target_month)
+    start_date = datetime.datetime(target_year, target_month, 1)
+    last_date = datetime.datetime(target_year, target_month, last_day[1])
+    return [start_date.date(), last_date.date()]
+
+def get_start_end_days_string_by_month(input_month):
+    target_date = get_first_and_end_day_by_month(input_month)
+
+    day_format = '%Y-%m-%d'
+    return [target_date[0].strftime(day_format), target_date[1].strftime(day_format)]
+
+
 def get_today_date():
     today = get_today()
     return datetime.datetime.strptime(today, '%Y-%m-%d')
@@ -30,6 +60,10 @@ def get_workdays():
     start_end_days = get_first_and_end_day_of_month()
     return chinese_calendar.get_workdays(start_end_days[0], start_end_days[1])
 
+def get_workdays_by_month(input_month):
+    start_end_days = get_first_and_end_day_by_month(input_month)
+    return chinese_calendar.get_workdays(start_end_days[0], start_end_days[1])
+
 
 def is_workday(date):
     try:
@@ -41,3 +75,7 @@ def is_workday(date):
     except Exception as e:
         print("格式错误: ", e)
         return ""
+
+if __name__ == "__main__":
+    year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
+    print(get_start_end_days_string_by_month(year_month))

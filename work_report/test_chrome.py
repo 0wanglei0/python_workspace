@@ -36,7 +36,7 @@ def test_url_cookies():
 
 
 def auto_login(local_browser):
-    days = weekdays.get_start_end_days_string()
+    days = weekdays.get_start_end_days_string_by_month(year_month)
     # print(days)
     url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
         days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
@@ -238,7 +238,10 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
     # print("_chooses", _chooses)
     while True:
         print(_chooses)
-        choose_index = eval(input("请选择填写日报日期序号："))
+        what_input = input("请选择填写日报日期序号(按q退出)：")
+        if what_input == "q":
+            break
+        choose_index = eval(what_input)
         if choose_index < 0 or choose_index > len(_key_for_choose):
             break
 
@@ -324,12 +327,12 @@ def get_current_system():
     return platform.system()
 
 
-def show_work_report(work_list):
+def show_work_report(work_list, input_month):
     # print(work_list)
     tb = ptb.PrettyTable()
     tb.field_names = ["日期", "请假类型", "请假时间", "工时", "加班时间", "在岗时长", "漏填日报"]
     new_list = work_list[1::]
-    work_days = weekdays.get_workdays()
+    work_days = weekdays.get_workdays_by_month(input_month)
     for item in new_list:
         field_item = item.replace("\n", "").split("\t")
         # print(field_item)
@@ -364,12 +367,13 @@ if __name__ == '__main__':
     loss_work_time_dict = {}
 
     try:
+        year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
         browser = get_current_default_browser()
         browser, origin_url = auto_login(browser)
         set_cookie(browser)
         work_time_dict = get_work_time(origin_url)
         work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-        show_work_report(work_time_info)
+        show_work_report(work_time_info, year_month)
         # print(table_csv_string)
         show_work_report_analysis(work_time_value)
         # write_to_file(table_csv_string, calculate_header, calculate_value)
@@ -388,7 +392,7 @@ if __name__ == '__main__':
         if re_cat == "Y" or re_cat == "y":
             work_time_dict = get_work_time(origin_url)
             work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-            show_work_report(work_time_info)
+            show_work_report(work_time_info, year_month)
             # print(table_csv_string)
             show_work_report_analysis(work_time_value)
             # write_to_file(table_csv_string, calculate_header, calculate_value)
