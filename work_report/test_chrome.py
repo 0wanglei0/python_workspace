@@ -219,7 +219,7 @@ def write_to_file(print_lst, calculate_header, calculate_value):
 def calculate_loss_time(loss_work_time):
     if loss_work_time == {}:
         print("work report complete")
-        return
+        return []
 
     _key_for_choose = []
     _keys = list(loss_work_time.keys())
@@ -382,30 +382,35 @@ if __name__ == '__main__':
         # work_list = ['日期\t请假类型\t请假时间\t工时\t加班时间\t在岗时长\t漏填日报\n', '2023-08-01\t\t\t11.4\t3.40\t11.41\t0.00\n', '2023-08-02\t串休假\t1.0\t8.1\t1.10\t8.1\t0.00\n', '2023-08-03\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-04\t\t\t9.18\t1.18\t9.18\t0.00\n', '2023-08-07\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-08\t\t\t8.15\t0.15\t8.15\t0.00\n', '2023-08-09\t\t\t11.0\t3.00\t11.05\t0.00\n', '2023-08-10\t\t\t8.3\t0.30\t8.33\t0.00\n', '2023-08-11\t事假\t1.0\t7.5\t0.50\t4.55\t0.00\n', '2023-08-14\t\t\t12.0\t4.00\t12.06\t0.00\n', '2023-08-15\t串休假\t1.0\t8.2\t1.20\t8.25\t0.00\n', '2023-08-16\t\t\t8.3\t0.30\t8.36\t0.00\n', '2023-08-17\t事假\t1.0\t7.6\t0.60\t7.66\t0.00\n', '2023-08-18\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-19\t\t\t2.0\t2.0\t\t\n', '2023-08-21\t\t\t9.1\t1.10\t9.13\t0.00\n', '2023-08-22\t事假\t1.0\t9.16\t2.16\t9.16\t0.00\n', '2023-08-23\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-24\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-25\t事假\t5.0\t3.0\t0.00\t3.0\t0.00\n', '2023-08-28\t\t\t8.1\t0.10\t8.11\t0.00\n', '2023-08-29\t\t\t8.1\t0.10\t8.16\t0.00\n', '2023-08-30\t年假\t1.0\t0.0\t0.00\t7.33\t7.00\n']
         # show_work_report(work_list)
 
-        keys, key_for_choose, _chooses = calculate_loss_time(loss_work_time_dict)
-        # print("_keys", keys)
-        # print("_key_for_choose", key_for_choose)
-        # print("_chooses", _chooses)
-        log_work_time(browser, keys, key_for_choose, _chooses)
+        loss_time = calculate_loss_time(loss_work_time_dict)
+        print(loss_time)
+        if len(loss_time) != 0:
+            keys, key_for_choose, _chooses = loss_time[0], loss_time[1], loss_time[2]
+            # print("_keys", keys)
+            # print("_key_for_choose", key_for_choose)
+            # print("_chooses", _chooses)
+            log_work_time(browser, keys, key_for_choose, _chooses)
 
-        re_cat = input("是否重新查看工作报告：Y/N")
-        if re_cat == "Y" or re_cat == "y":
-            work_time_dict = get_work_time(origin_url)
-            work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-            show_work_report(work_time_info, year_month)
-            # print(table_csv_string)
-            show_work_report_analysis(work_time_value)
-            # write_to_file(table_csv_string, calculate_header, calculate_value)
-            write_to_file(work_time_info, work_time_header, work_time_value)
+            re_cat = input("是否重新查看工作报告：Y/N")
+            if re_cat == "Y" or re_cat == "y":
+                work_time_dict = get_work_time(origin_url)
+                work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+                show_work_report(work_time_info, year_month)
+                # print(table_csv_string)
+                show_work_report_analysis(work_time_value)
+                # write_to_file(table_csv_string, calculate_header, calculate_value)
+                write_to_file(work_time_info, work_time_header, work_time_value)
 
         browser.quit()
     except Exception as e:
         log_file = open("error.log", "a+")
-        print(time.strftime("%Y-%m-%d %H:%M:%S.sss", time.localtime(time.time())), e, file=log_file)
+        now = datetime.datetime.now()
+        print(now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3], e, file=log_file)
         log_file.close()
 
     while True:
-        if input("输入Enter退出") + "1":
+        input_string = input("输入Enter退出")
+        if input_string + "1" != "":
             sys.exit()
 
 # test_url()
