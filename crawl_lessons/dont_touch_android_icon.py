@@ -4,11 +4,7 @@ from pygame.locals import *
 from random import randint
 import os
 
-# ..\python_workspace\Scripts\pyinstaller.exe - F.\dont_touch_android_icon.py - -add - binary
-# ".\background.webp;." - -add - binary
-# ".\ic_launcher.png;." - -add - binary
-# ".\ic_launcher_round.png;." - -add - binary
-# ".\replay.png;."
+# ..\python_workspace\Scripts\pyinstaller.exe - F.\dont_touch_android_icon.py --add-binary ".\background.webp;." --add-binary ".\ic_launcher.png;." --add-binary ".\ic_launcher_round.png;." --add-binary ".\replay.png;."
 
 
 def get_resource_path(relative_path):
