@@ -5,6 +5,7 @@ import re
 import wget
 import crawl_lessons.crawl_movies as cm
 
+# ..\python_workspace\Scripts\pyinstaller.exe - F.\crawl_songs.py - p.\crawl_movies.py
 class AppSongs(cm.App):
     def __init__(self):
         super().__init__()
