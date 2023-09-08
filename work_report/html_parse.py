@@ -1,3 +1,5 @@
+from lxml import etree
+
 from bs4 import BeautifulSoup
 
 string = """
@@ -230,10 +232,11 @@ setSelect2Filter('issue_tags', {"url":"http://redmine-pa.mxnavi.com/auto_complet
 </html>
 """
 
-soup = BeautifulSoup(string, 'html.parser')
-hidden_code = soup.find_all(name="input", attrs={"name": "code"})
-for item in hidden_code:
-    # print(item.__getattribute__("value"))
-    print(item['value'])
-    print(type(item))
-print("hidden_code", hidden_code)
+resp_html = etree.HTML(string)
+resp_list = resp_html.xpath("//table[@id='workreport-table']/tbody")
+for item in resp_list:
+    trs = item.findall("tr")
+    trs_len = len(trs)
+    target_time = trs[trs_len - 1].xpath("./td[2]/text()")[0].replace(" ", "").replace("\n", "")
+
+    print(target_time)
