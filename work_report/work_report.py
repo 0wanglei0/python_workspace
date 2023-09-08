@@ -119,6 +119,7 @@ def get_time_at_company(input_month):
     for key, value in work_time_by_days:
         actual_external_time += 0 if value - 8 < 0 else value - 8
 
+    # TODO return dict,在需要处计算时间
     return actual_external_time
 
 
@@ -236,7 +237,7 @@ def total_time_to_file(external_time_at_company, table_dic):
     # print("holiday_time", holiday_time)
     holiday_hour = external_work // 20 * 8
     expect_worktime = len(weekdays.get_workdays()) * 8
-
+    # TODO for in work_dict append actual_在岗时间 to print_lst
     calculate_header = ["当前负荷", "总计加班时间", "已审核加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)),
                        str("%.2f" % external_time_at_company),
@@ -426,7 +427,6 @@ if __name__ == '__main__':
         # 新增每日在岗时长
         external_work_time_at_company = get_time_at_company(year_month)
         work_time_dict = get_work_time(origin_url)
-        # TODO 统计每日在岗时长，输出到文件和表格中，使用原在岗时长字段
         work_time_info, work_time_header, work_time_value = total_time_to_file(external_work_time_at_company, work_time_dict)
         show_work_report(work_time_info, year_month)
         # print(table_csv_string)
