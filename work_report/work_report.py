@@ -6,6 +6,7 @@ import time
 
 import execjs
 from bs4 import BeautifulSoup
+from lxml import etree
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -82,6 +83,43 @@ def auto_login(local_browser):
 def set_cookie(local_browser):
     cookie = local_browser.get_cookies()[0].get("value")
     headers["Cookie"] = "_redmine_session=" + cookie
+
+def find_work_time(response_with_code):
+    resp_html = etree.HTML(response_with_code.text)
+    resp_list = resp_html.xpath("//table[@id='workreport-table']/tbody")
+    # print(resp_list)
+    #
+    # for li in resp_list:
+    #     # print(li)
+    #     day_weather_info = {"date_time": li.xpath("./div[1]/text()")[0].split(" ")[0]}
+    #     high = li.xpath("./div[2]/text()")[0]
+    #     day_weather_info["high"] = high[:high.find("℃")]
+    #
+    #     low = li.xpath("./div[3]/text()")[0]
+    #     day_weather_info["low"] = low[:low.find("℃")]
+    #
+    #     day_weather_info["weather"] = li.xpath("./div[4]/text()")[0]
+    #     weather_info.append(day_weather_info)
+    # return weather_info
+
+
+def get_time_at_company(input_month):
+    response = requests.get("https://redmine-pa.mxnavi.com/cardinfos", headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    hidden_code = soup.find(name="code")
+    print("hidden_code", hidden_code)
+    print(soup)
+    work_days = weekdays.get_days_until_today_with_month(input_month)
+    work_time_by_days = []
+    for item in work_days:
+        url = f"https://redmine-pa.mxnavi.com/selectcardinfo?utf8=%E2%9C%93&code={hidden_code}" \
+              f"&event_time%5B%5D={item}&commit=%E6%9F%A5%E8%AF%A2"
+        print(url)
+        response_with_code = requests.get(url)
+        find_work_time(response_with_code)
+        time.sleep(200)
+
+
 
 def get_work_time(url):
     # print(browser.get_cookies())
@@ -316,8 +354,8 @@ def use_js_change_value(_browser, element_id, value):
 
 def get_current_default_browser():
     print("start")
-    # print(get_current_system() == "Windows")
-    # print(judge.init_edge())
+    print(get_current_system() == "Windows")
+    print(judge.init_edge())
     if get_current_system() == "Windows" and judge.init_edge():
         this_browser = webdriver.Edge()
         print("使用Edge")
@@ -374,35 +412,36 @@ if __name__ == '__main__':
         browser = get_current_default_browser()
         browser, origin_url = auto_login(browser)
         set_cookie(browser)
-        work_time_dict = get_work_time(origin_url)
-        work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-        show_work_report(work_time_info, year_month)
-        # print(table_csv_string)
-        show_work_report_analysis(work_time_value)
-        # write_to_file(table_csv_string, calculate_header, calculate_value)
-        write_to_file(work_time_info, work_time_header, work_time_value)
-
-        # work_list = ['日期\t请假类型\t请假时间\t工时\t加班时间\t在岗时长\t漏填日报\n', '2023-08-01\t\t\t11.4\t3.40\t11.41\t0.00\n', '2023-08-02\t串休假\t1.0\t8.1\t1.10\t8.1\t0.00\n', '2023-08-03\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-04\t\t\t9.18\t1.18\t9.18\t0.00\n', '2023-08-07\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-08\t\t\t8.15\t0.15\t8.15\t0.00\n', '2023-08-09\t\t\t11.0\t3.00\t11.05\t0.00\n', '2023-08-10\t\t\t8.3\t0.30\t8.33\t0.00\n', '2023-08-11\t事假\t1.0\t7.5\t0.50\t4.55\t0.00\n', '2023-08-14\t\t\t12.0\t4.00\t12.06\t0.00\n', '2023-08-15\t串休假\t1.0\t8.2\t1.20\t8.25\t0.00\n', '2023-08-16\t\t\t8.3\t0.30\t8.36\t0.00\n', '2023-08-17\t事假\t1.0\t7.6\t0.60\t7.66\t0.00\n', '2023-08-18\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-19\t\t\t2.0\t2.0\t\t\n', '2023-08-21\t\t\t9.1\t1.10\t9.13\t0.00\n', '2023-08-22\t事假\t1.0\t9.16\t2.16\t9.16\t0.00\n', '2023-08-23\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-24\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-25\t事假\t5.0\t3.0\t0.00\t3.0\t0.00\n', '2023-08-28\t\t\t8.1\t0.10\t8.11\t0.00\n', '2023-08-29\t\t\t8.1\t0.10\t8.16\t0.00\n', '2023-08-30\t年假\t1.0\t0.0\t0.00\t7.33\t7.00\n']
-        # show_work_report(work_list)
-
-        loss_time = calculate_loss_time(loss_work_time_dict)
-        print(loss_time)
-        if len(loss_time) != 0:
-            keys, key_for_choose, _chooses = loss_time[0], loss_time[1], loss_time[2]
-            # print("_keys", keys)
-            # print("_key_for_choose", key_for_choose)
-            # print("_chooses", _chooses)
-            log_work_time(browser, keys, key_for_choose, _chooses)
-
-            re_cat = input("是否重新查看工作报告：Y/N")
-            if re_cat == "Y" or re_cat == "y":
-                work_time_dict = get_work_time(origin_url)
-                work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-                show_work_report(work_time_info, year_month)
-                # print(table_csv_string)
-                show_work_report_analysis(work_time_value)
-                # write_to_file(table_csv_string, calculate_header, calculate_value)
-                write_to_file(work_time_info, work_time_header, work_time_value)
+        get_time_at_company(year_month)
+        # work_time_dict = get_work_time(origin_url)
+        # work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+        # show_work_report(work_time_info, year_month)
+        # # print(table_csv_string)
+        # show_work_report_analysis(work_time_value)
+        # # write_to_file(table_csv_string, calculate_header, calculate_value)
+        # write_to_file(work_time_info, work_time_header, work_time_value)
+        #
+        # # work_list = ['日期\t请假类型\t请假时间\t工时\t加班时间\t在岗时长\t漏填日报\n', '2023-08-01\t\t\t11.4\t3.40\t11.41\t0.00\n', '2023-08-02\t串休假\t1.0\t8.1\t1.10\t8.1\t0.00\n', '2023-08-03\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-04\t\t\t9.18\t1.18\t9.18\t0.00\n', '2023-08-07\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-08\t\t\t8.15\t0.15\t8.15\t0.00\n', '2023-08-09\t\t\t11.0\t3.00\t11.05\t0.00\n', '2023-08-10\t\t\t8.3\t0.30\t8.33\t0.00\n', '2023-08-11\t事假\t1.0\t7.5\t0.50\t4.55\t0.00\n', '2023-08-14\t\t\t12.0\t4.00\t12.06\t0.00\n', '2023-08-15\t串休假\t1.0\t8.2\t1.20\t8.25\t0.00\n', '2023-08-16\t\t\t8.3\t0.30\t8.36\t0.00\n', '2023-08-17\t事假\t1.0\t7.6\t0.60\t7.66\t0.00\n', '2023-08-18\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-19\t\t\t2.0\t2.0\t\t\n', '2023-08-21\t\t\t9.1\t1.10\t9.13\t0.00\n', '2023-08-22\t事假\t1.0\t9.16\t2.16\t9.16\t0.00\n', '2023-08-23\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-24\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-25\t事假\t5.0\t3.0\t0.00\t3.0\t0.00\n', '2023-08-28\t\t\t8.1\t0.10\t8.11\t0.00\n', '2023-08-29\t\t\t8.1\t0.10\t8.16\t0.00\n', '2023-08-30\t年假\t1.0\t0.0\t0.00\t7.33\t7.00\n']
+        # # show_work_report(work_list)
+        #
+        # loss_time = calculate_loss_time(loss_work_time_dict)
+        # print(loss_time)
+        # if len(loss_time) != 0:
+        #     keys, key_for_choose, _chooses = loss_time[0], loss_time[1], loss_time[2]
+        #     # print("_keys", keys)
+        #     # print("_key_for_choose", key_for_choose)
+        #     # print("_chooses", _chooses)
+        #     log_work_time(browser, keys, key_for_choose, _chooses)
+        #
+        #     re_cat = input("是否重新查看工作报告：Y/N")
+        #     if re_cat == "Y" or re_cat == "y":
+        #         work_time_dict = get_work_time(origin_url)
+        #         work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+        #         show_work_report(work_time_info, year_month)
+        #         # print(table_csv_string)
+        #         show_work_report_analysis(work_time_value)
+        #         # write_to_file(table_csv_string, calculate_header, calculate_value)
+        #         write_to_file(work_time_info, work_time_header, work_time_value)
 
         browser.quit()
     except Exception as e:

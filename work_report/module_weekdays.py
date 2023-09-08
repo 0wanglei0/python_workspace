@@ -76,6 +76,34 @@ def is_workday(date):
         print("格式错误: ", e)
         return ""
 
+
+def get_format_dates(start_day, end_day):
+    dates = [start_day + datetime.timedelta(days=x) for x in range((end_day - start_day).days + 1)]
+    formatted_dates = [date.strftime('%Y-%m-%d') for date in dates]
+
+    # print(formatted_dates)
+    return formatted_dates
+
+def get_days_until_today():
+    today = datetime.date.today()
+    first_day = datetime.date(today.year, today.month, 1)
+    return get_format_dates(first_day, today)
+
+
+def get_days_until_today_with_month(input_month):
+    today = get_today_date()
+    if int(input_month) != today.month:
+        start_day, end_day = get_first_and_end_day_by_month(input_month)
+    else:
+        start_day = today
+        end_day = datetime.date(today.year, today.month, 1)
+
+    return get_format_dates(start_day, end_day)
+
+
 if __name__ == "__main__":
-    year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
-    print(get_start_end_days_string_by_month(year_month))
+    # year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
+    # print(get_start_end_days_string_by_month(year_month))
+    print(get_days_until_today_with_month("8"))
+    print("-------------")
+    print(get_days_until_today())
