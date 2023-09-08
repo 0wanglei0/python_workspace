@@ -231,5 +231,9 @@ setSelect2Filter('issue_tags', {"url":"http://redmine-pa.mxnavi.com/auto_complet
 """
 
 soup = BeautifulSoup(string, 'html.parser')
-hidden_code = soup.find(name="code")
+hidden_code = soup.find_all(name="input", attrs={"name": "code"})
+for item in hidden_code:
+    # print(item.__getattribute__("value"))
+    print(item['value'])
+    print(type(item))
 print("hidden_code", hidden_code)
