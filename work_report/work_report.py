@@ -363,7 +363,7 @@ def show_work_report_analysis(work_total):
 
 # ios 运行可能要在mac上运行pyinstaler
 # windows
-#  ..\python_workspace\Scripts\pyinstaller.exe -F .\test_chrome.py
+#  ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py
 #  --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;."
 #  --add-binary "chromedriver_115.exe;."
 if __name__ == '__main__':
