@@ -22,7 +22,7 @@ file = open(filename [, mode, encoding])
 
 # file = open("test.txt", "a+", encoding="utf8")
 # file = open("test.txt", "r+", encoding="utf8") # r+ 会覆盖掉新输入部分大小空间的内容
-file = open("test.txt", "a+", encoding="utf8") # 2+ 会覆盖掉全部内容，重新写入
+file = open("../test.txt", "a+", encoding="utf8") # 2+ 会覆盖掉全部内容，重新写入
 print(file.read())
 print(file.encoding)
 file.write("lalalalala\n")
@@ -61,9 +61,9 @@ close       写入文件，关闭文件
 """
 a = 0
 if a:
-    src = open("arrow_down_n.png", "rb")
+    src = open("../arrow_down_n.png", "rb")
 
-    target = open("target_file.png", "wb")
+    target = open("../target_file.png", "wb")
 
     target.write(src.read())
 
@@ -77,7 +77,7 @@ with语句
 自动管理上下文资源，确保文件可以正确关闭，释放资源
 """
 
-with open("target_file.png", "rb") as src:
+with open("../target_file.png", "rb") as src:
     src.read() # 此处可以不用关闭，会自动关闭
 
 
@@ -126,7 +126,7 @@ if a:
     os.startfile("C:/Users/pc/AppData/Local/GitHubDesktop/GitHubDesktop.exe")
 
 print(os.getcwd())
-lst = os.listdir('lessons')
+lst = os.listdir('')
 print(lst)
 
 # os.chdir("D:/python_workspace")
@@ -148,7 +148,7 @@ import os.path
 
 print(os.path.abspath("lesson_file.py"))
 print(os.path.exists("lesson_file.py"))
-print(os.path.join("lessons", "lesson_file.py"))
+print(os.path.join("", "lesson_file.py"))
 print(os.path.splitext("lesson_file.py")[1].split(".")[1])
 print(os.path.basename("D:/python_workspace/lesson_file.py"))
 print(os.path.dirname("D:/python_workspace/lesson_file.py"))
