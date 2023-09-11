@@ -19,7 +19,7 @@ bg_position = bg.get_rect()
 size = width, height = 800, 500
 screen = pygame.display.set_mode(size)
 
-pygame.display.set_caption("愤怒的小鸟")
+pygame.display.set_caption("别碰到安卓方块图标")
 
 def main():
     class Bird(pygame.sprite.Sprite):

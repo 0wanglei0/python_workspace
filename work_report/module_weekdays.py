@@ -32,12 +32,15 @@ def get_first_and_end_day_by_month(input_month):
 
         if target_month > 12:
             target_month = today_date.month
+        last_day = calendar.monthrange(target_year, target_month)[1]
+    else:
+        last_day = today_date.day - 1
 
     # print(target_year)
     # print(target_month)
-    last_day = calendar.monthrange(target_year, target_month)
+    # last_day = calendar.monthrange(target_year, target_month)
     start_date = datetime.datetime(target_year, target_month, 1)
-    last_date = datetime.datetime(target_year, target_month, last_day[1])
+    last_date = datetime.datetime(target_year, target_month, last_day)
     return [start_date.date(), last_date.date()]
 
 def get_start_end_days_string_by_month(input_month):
@@ -92,18 +95,22 @@ def get_days_until_today():
 
 def get_days_until_today_with_month(input_month):
     today = get_today_date()
-    if int(input_month) != today.month:
+    # print(today)
+    # print(today.month)
+    if input_month != "" and int(input_month) != today.month:
         start_day, end_day = get_first_and_end_day_by_month(input_month)
     else:
-        start_day = today
-        end_day = datetime.date(today.year, today.month, 1)
+        start_day = datetime.date(today.year, today.month, 1)
+        end_day = datetime.date(today.year, today.month, today.day - 1)
 
+    # print(start_day)
+    # print(end_day)
     return get_format_dates(start_day, end_day)
 
 
 if __name__ == "__main__":
     # year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
     # print(get_start_end_days_string_by_month(year_month))
-    print(get_days_until_today_with_month("8"))
+    print(get_days_until_today_with_month(""))
     print("-------------")
     print(get_days_until_today())
