@@ -5,6 +5,7 @@ import datetime
 import time
 
 import execjs
+import pandas
 from bs4 import BeautifulSoup
 from lxml import etree
 from selenium import webdriver
@@ -242,11 +243,22 @@ def total_time_to_file(table_dic):
     return [print_lst, calculate_header, calculate_value]
 
 
+def write_to_excel(detail_datas, analysis_datas):
+    rows_num = len(detail_datas["日期"]) + 3
+    df0 = pandas.DataFrame(detail_datas)
+    df1 = pandas.DataFrame(analysis_datas)
+    print(df0)
+
+    with pandas.ExcelWriter("work_report.xlsx", engine='xlsxwriter') as writer:
+        df0.to_excel(writer, sheet_name="work_report", index=False, startrow=0)
+        df1.to_excel(writer, sheet_name="work_report", index=False, startrow=rows_num)
+
+
 def write_to_file(print_lst, calculate_header, calculate_value):
     with open("work_report.xlsx", "w+", encoding="utf8") as wr:
         # wr.write(print_lst.replace(",", "\t"))
-        for string in print_lst:
-            wr.write(string)
+        # for string in print_lst:
+        #     wr.write(string)
 
         wr.write("\n")
         wr.write("\n")
@@ -427,7 +439,17 @@ def show_work_report(work_list, input_month, worktime_by_days_dict):
     tb.add_rows(rows)
     # print(loss_work_time_dict)
     print(tb)
-    return external_work
+    datas = {
+        tb.field_names[0]: list(item[0] for item in rows),
+        tb.field_names[1]: list(item[1] for item in rows),
+        tb.field_names[2]: list(item[2] for item in rows),
+        tb.field_names[3]: list(item[3] for item in rows),
+        tb.field_names[4]: list(item[4] for item in rows),
+        tb.field_names[5]: list(item[5] for item in rows),
+        tb.field_names[6]: list(item[6] for item in rows)
+    }
+    # print(datas)
+    return external_work, datas
 
 
 def show_work_report_analysis(work_total):
@@ -435,6 +457,16 @@ def show_work_report_analysis(work_total):
     tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
     tb_total.add_row(work_total)
     print(tb_total)
+    datas = {
+        tb_total.field_names[0]: [work_total[0]],
+        tb_total.field_names[1]: [work_total[1]],
+        tb_total.field_names[2]: [work_total[2]],
+        tb_total.field_names[3]: [work_total[3]],
+        tb_total.field_names[4]: [work_total[4]],
+        tb_total.field_names[5]: [work_total[5]],
+        tb_total.field_names[6]: [work_total[6]]
+    }
+    return datas
 
 
 def get_external_worktime(worktime_by_days_dict):
@@ -462,16 +494,17 @@ if __name__ == '__main__':
         # work_time_by_days_dict = {'2023-09-01': '8.33', '2023-09-02': '0.0', '2023-09-03': '0.0', '2023-09-04': '10.15', '2023-09-05': '11.73', '2023-09-06': '7.61', '2023-09-07': '5.48', '2023-09-08': '8.08', '2023-09-09': '0.0', '2023-09-10': '0.0', '2023-09-11': '2.41'}
         work_time_dict = get_work_time(origin_url)
         work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-        _external_work = show_work_report(work_time_info, year_month, work_time_by_days_dict)
+        _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
         # print(table_csv_string)
         # print(_external_work)
         # print(work_time_value)
         work_time_value[1] = "%.2f" % _external_work
-        show_work_report_analysis(work_time_value)
+        _datas_analysis = show_work_report_analysis(work_time_value)
         print("%.2f" % _external_work)
         print(work_time_value)
         # write_to_file(table_csv_string, calculate_header, calculate_value)
-        write_to_file(work_time_info, work_time_header, work_time_value)
+        write_to_excel(_datas, _datas_analysis)
+        # write_to_file(work_time_info, work_time_header, work_time_value)
 
         # work_list = ['日期\t请假类型\t请假时间\t工时\t加班时间\t在岗时长\t漏填日报\n', '2023-08-01\t\t\t11.4\t3.40\t11.41\t0.00\n', '2023-08-02\t串休假\t1.0\t8.1\t1.10\t8.1\t0.00\n', '2023-08-03\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-04\t\t\t9.18\t1.18\t9.18\t0.00\n', '2023-08-07\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-08\t\t\t8.15\t0.15\t8.15\t0.00\n', '2023-08-09\t\t\t11.0\t3.00\t11.05\t0.00\n', '2023-08-10\t\t\t8.3\t0.30\t8.33\t0.00\n', '2023-08-11\t事假\t1.0\t7.5\t0.50\t4.55\t0.00\n', '2023-08-14\t\t\t12.0\t4.00\t12.06\t0.00\n', '2023-08-15\t串休假\t1.0\t8.2\t1.20\t8.25\t0.00\n', '2023-08-16\t\t\t8.3\t0.30\t8.36\t0.00\n', '2023-08-17\t事假\t1.0\t7.6\t0.60\t7.66\t0.00\n', '2023-08-18\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-19\t\t\t2.0\t2.0\t\t\n', '2023-08-21\t\t\t9.1\t1.10\t9.13\t0.00\n', '2023-08-22\t事假\t1.0\t9.16\t2.16\t9.16\t0.00\n', '2023-08-23\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-24\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-25\t事假\t5.0\t3.0\t0.00\t3.0\t0.00\n', '2023-08-28\t\t\t8.1\t0.10\t8.11\t0.00\n', '2023-08-29\t\t\t8.1\t0.10\t8.16\t0.00\n', '2023-08-30\t年假\t1.0\t0.0\t0.00\t7.33\t7.00\n']
         # show_work_report(work_list)
@@ -490,15 +523,16 @@ if __name__ == '__main__':
                 work_time_by_days_dict = get_time_at_company(year_month)
 
                 work_time_dict = get_work_time(origin_url)
-                work_time_value[1] = "%.2f" % _external_work
 
                 work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-                show_work_report(work_time_info, year_month, work_time_by_days_dict)
+                _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
+                work_time_value[1] = "%.2f" % _external_work
 
                 # print(table_csv_string)
-                show_work_report_analysis(work_time_value)
+                _datas_analysis = show_work_report_analysis(work_time_value)
                 # write_to_file(table_csv_string, calculate_header, calculate_value)
-                write_to_file(work_time_info, work_time_header, work_time_value)
+                # write_to_file(work_time_info, work_time_header, work_time_value)
+                write_to_excel(_datas, _datas_analysis)
 
         browser.quit()
     except Exception as e:
