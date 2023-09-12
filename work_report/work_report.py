@@ -95,7 +95,7 @@ def find_work_time(response_with_code):
     # print(resp_list)
     # print("in")
     result = str(resp_list[0].xpath("//tr")[-1].xpath("./td/text()")[-1]).replace("\n", "").replace(" ", "")
-    print(result)
+    # print(result)
     return result
 
 
@@ -103,7 +103,7 @@ def get_time_at_company(input_month):
     response = requests.get("https://redmine-pa.mxnavi.com/cardinfos", headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
     hidden_code = soup.find(name="input", attrs={"name": "code"})["value"]
-    print("hidden_code", hidden_code)
+    # print("hidden_code", hidden_code)
     # print(soup)
     work_days = weekdays.get_days_until_today_with_month(input_month)
     work_time_by_days = {}
@@ -247,7 +247,7 @@ def write_to_excel(detail_datas, analysis_datas):
     rows_num = len(detail_datas["日期"]) + 3
     df0 = pandas.DataFrame(detail_datas)
     df1 = pandas.DataFrame(analysis_datas)
-    print(df0)
+    # print(df0)
 
     with pandas.ExcelWriter("work_report.xlsx", engine='xlsxwriter') as writer:
         df0.to_excel(writer, sheet_name="work_report", index=False, startrow=0)
@@ -500,8 +500,8 @@ if __name__ == '__main__':
         # print(work_time_value)
         work_time_value[1] = "%.2f" % _external_work
         _datas_analysis = show_work_report_analysis(work_time_value)
-        print("%.2f" % _external_work)
-        print(work_time_value)
+        # print("%.2f" % _external_work)
+        # print(work_time_value)
         # write_to_file(table_csv_string, calculate_header, calculate_value)
         write_to_excel(_datas, _datas_analysis)
         # write_to_file(work_time_info, work_time_header, work_time_value)
