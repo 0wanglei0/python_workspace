@@ -34,7 +34,7 @@ def get_first_and_end_day_by_month(input_month):
             target_month = today_date.month
         last_day = calendar.monthrange(target_year, target_month)[1]
     else:
-        last_day = today_date.day - 1
+        last_day = today_date.day
 
     # print(target_year)
     # print(target_month)
@@ -101,7 +101,7 @@ def get_days_until_today_with_month(input_month):
         start_day, end_day = get_first_and_end_day_by_month(input_month)
     else:
         start_day = datetime.date(today.year, today.month, 1)
-        end_day = datetime.date(today.year, today.month, today.day - 1)
+        end_day = datetime.date(today.year, today.month, today.day)
 
     # print(start_day)
     # print(end_day)

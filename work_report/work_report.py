@@ -1,5 +1,6 @@
 import calendar
 import platform
+import re
 import sys
 import datetime
 import time
@@ -27,10 +28,7 @@ headers = {
     'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
 }
 
-""" ..\python_workspace\Scripts\pyinstaller.exe - F.\test_chrome.py - -add - binary
-"chromedriver.exe;." - -add - binary
-"chromedriver_116.exe;." - -add - binary
-"chromedriver_115.exe;.\" """
+""" ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;." --add-binary "chromedriver_115.exe;." """
 
 
 def test_url_cookies():
@@ -42,6 +40,7 @@ def test_url_cookies():
 
 
 def auto_login(local_browser):
+    print("正在自动登录,请稍后...")
     days = weekdays.get_start_end_days_string_by_month(year_month)
     # print(days)
     url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
@@ -79,7 +78,8 @@ def auto_login(local_browser):
     else:
         raise Exception("browser is not load right, please retry")
 
-    time.sleep(5)
+    print("页面加载中，请稍后...")
+    time.sleep(3)
     return [local_browser, url]
 
 
@@ -100,6 +100,7 @@ def find_work_time(response_with_code):
 
 
 def get_time_at_company(input_month):
+    print("统计在岗时间")
     response = requests.get("https://redmine-pa.mxnavi.com/cardinfos", headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
     hidden_code = soup.find(name="input", attrs={"name": "code"})["value"]
@@ -119,8 +120,10 @@ def get_time_at_company(input_month):
     # print(work_time_by_days)
     return work_time_by_days
 
+
 def get_work_time(url):
     # print(browser.get_cookies())
+    print("统计已登记日报")
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -158,6 +161,7 @@ def get_work_time(url):
 
 
 def total_time_to_file(table_dic):
+    print("统计时间制成表格")
     # print(table_dic)
     print_lst = [
         str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长" + "\t" + "漏填日报" + "\n")]
@@ -230,7 +234,7 @@ def total_time_to_file(table_dic):
     # print("workday", workday)
 
     # print("external_work ", str("%.2f" % external_work))
-    print("holiday_time", holiday_time)
+    # print("holiday_time", holiday_time)
     holiday_hour = external_work // 20 * 8
     expect_worktime = len(weekdays.get_workdays()) * 8
 
@@ -244,6 +248,7 @@ def total_time_to_file(table_dic):
 
 
 def write_to_excel(detail_datas, analysis_datas):
+    print("写入文件")
     rows_num = len(detail_datas["日期"]) + 3
     df0 = pandas.DataFrame(detail_datas)
     df1 = pandas.DataFrame(analysis_datas)
@@ -281,7 +286,7 @@ def calculate_loss_time(loss_work_time):
     _keys = list(loss_work_time.keys())
     chooses = []
     # print(_keys)
-    for index in range(len(_keys)):
+    for index in range(len(_keys) - 1):
         choose = f"{index}.{_keys[index]}"
         chooses.append(choose)
         _key_for_choose.append(_keys[index])
@@ -292,18 +297,21 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
     # print("_keys", _keys)
     # print("_key_for_choose", _key_for_choose)
     # print("_chooses", _chooses)
-    while True:
+    while len(_chooses) != 0:
         print(_chooses)
-        what_input = input("请选择填写日报日期序号(按q退出)：")
-        if what_input == "q":
-            sys.exit()
-        choose_index = eval(what_input)
+        what_input = input("请选择填写日报日期序号(按非数字键退出)：")
+        pattern = r"\d+"
+        matches = re.findall(pattern, what_input)
+        if what_input == "q" or len(matches) == 0:
+            return 0
+        choose_index = eval(matches[0])
         if choose_index < 0 or choose_index > len(_key_for_choose):
+            print("请输入有效的序号")
             continue
 
         choose_key = _key_for_choose[choose_index]
         choose_value = loss_work_time_dict.get(choose_key)
-        print(choose_value)
+        print(f"您选择的序号是：{choose_value}")
         all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
         local_browser.get(all_issues_url)
         time.sleep(2)
@@ -348,14 +356,16 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
         if len(key_for_choose) == 0 and residue_time == 0:
             key_for_choose.pop(choose_index)
             print("日报填写完成，结束运行")
-            break
+            return 1
         else:
             is_goon = input("是否继续填写日报 Y/N")
             if is_goon == "Y" or is_goon == "y":
                 continue
             else:
                 print("日报填写完成，结束运行")
-                break
+                return 1
+    else:
+        return 0
 
 
 def use_js_change_value(_browser, element_id, value):
@@ -370,7 +380,7 @@ def use_js_change_value(_browser, element_id, value):
 
 
 def get_current_default_browser():
-    print("start")
+    print("浏览器加载中，请稍后...")
     # print(get_current_system() == "Windows")
     # print(judge.init_edge())
     if get_current_system() == "Windows" and judge.init_edge():
@@ -387,6 +397,7 @@ def get_current_system():
 
 
 def show_work_report(work_list, input_month, worktime_by_days_dict):
+    print("请查看：")
     # print(work_list)
     tb = ptb.PrettyTable()
     tb.field_names = ["日期", "请假类型", "请假时间", "工时", "加班时间", "在岗时长", "漏填日报"]
@@ -487,13 +498,18 @@ if __name__ == '__main__':
     try:
         year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
         browser = get_current_default_browser()
+        print("加载完成！")
         browser, origin_url = auto_login(browser)
         set_cookie(browser)
+        print("登录成功")
         # 好像只能这样了，请假的
         work_time_by_days_dict = get_time_at_company(year_month)
+        print("在岗时间统计完成")
         # work_time_by_days_dict = {'2023-09-01': '8.33', '2023-09-02': '0.0', '2023-09-03': '0.0', '2023-09-04': '10.15', '2023-09-05': '11.73', '2023-09-06': '7.61', '2023-09-07': '5.48', '2023-09-08': '8.08', '2023-09-09': '0.0', '2023-09-10': '0.0', '2023-09-11': '2.41'}
         work_time_dict = get_work_time(origin_url)
+        print("统计已登记日报完成")
         work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+        print("表格制作完成")
         _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
         # print(table_csv_string)
         # print(_external_work)
@@ -503,7 +519,7 @@ if __name__ == '__main__':
         # print("%.2f" % _external_work)
         # print(work_time_value)
         # write_to_file(table_csv_string, calculate_header, calculate_value)
-        write_to_excel(_datas, _datas_analysis)
+        # write_to_excel(_datas, _datas_analysis)
         # write_to_file(work_time_info, work_time_header, work_time_value)
 
         # work_list = ['日期\t请假类型\t请假时间\t工时\t加班时间\t在岗时长\t漏填日报\n', '2023-08-01\t\t\t11.4\t3.40\t11.41\t0.00\n', '2023-08-02\t串休假\t1.0\t8.1\t1.10\t8.1\t0.00\n', '2023-08-03\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-04\t\t\t9.18\t1.18\t9.18\t0.00\n', '2023-08-07\t\t\t8.0\t0.00\t8.03\t0.00\n', '2023-08-08\t\t\t8.15\t0.15\t8.15\t0.00\n', '2023-08-09\t\t\t11.0\t3.00\t11.05\t0.00\n', '2023-08-10\t\t\t8.3\t0.30\t8.33\t0.00\n', '2023-08-11\t事假\t1.0\t7.5\t0.50\t4.55\t0.00\n', '2023-08-14\t\t\t12.0\t4.00\t12.06\t0.00\n', '2023-08-15\t串休假\t1.0\t8.2\t1.20\t8.25\t0.00\n', '2023-08-16\t\t\t8.3\t0.30\t8.36\t0.00\n', '2023-08-17\t事假\t1.0\t7.6\t0.60\t7.66\t0.00\n', '2023-08-18\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-19\t\t\t2.0\t2.0\t\t\n', '2023-08-21\t\t\t9.1\t1.10\t9.13\t0.00\n', '2023-08-22\t事假\t1.0\t9.16\t2.16\t9.16\t0.00\n', '2023-08-23\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-24\t\t\t8.0\t0.00\t8.05\t0.00\n', '2023-08-25\t事假\t5.0\t3.0\t0.00\t3.0\t0.00\n', '2023-08-28\t\t\t8.1\t0.10\t8.11\t0.00\n', '2023-08-29\t\t\t8.1\t0.10\t8.16\t0.00\n', '2023-08-30\t年假\t1.0\t0.0\t0.00\t7.33\t7.00\n']
@@ -516,24 +532,25 @@ if __name__ == '__main__':
             # print("_keys", keys)
             # print("_key_for_choose", key_for_choose)
             # print("_chooses", _chooses)
-            log_work_time(browser, keys, key_for_choose, _chooses)
+            log_result = log_work_time(browser, keys, key_for_choose, _chooses)
 
-            re_cat = input("是否重新查看工作报告：Y/N")
-            if re_cat == "Y" or re_cat == "y":
-                work_time_by_days_dict = get_time_at_company(year_month)
+            if log_result != 0:
+                re_cat = input("是否重新查看工作报告：Y/N")
+                if re_cat == "Y" or re_cat == "y":
+                    work_time_by_days_dict = get_time_at_company(year_month)
 
-                work_time_dict = get_work_time(origin_url)
+                    work_time_dict = get_work_time(origin_url)
 
-                work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-                _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
-                work_time_value[1] = "%.2f" % _external_work
+                    work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+                    _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
+                    work_time_value[1] = "%.2f" % _external_work
 
-                # print(table_csv_string)
-                _datas_analysis = show_work_report_analysis(work_time_value)
-                # write_to_file(table_csv_string, calculate_header, calculate_value)
-                # write_to_file(work_time_info, work_time_header, work_time_value)
-                write_to_excel(_datas, _datas_analysis)
-
+                    # print(table_csv_string)
+                    _datas_analysis = show_work_report_analysis(work_time_value)
+                    # write_to_file(table_csv_string, calculate_header, calculate_value)
+                    # write_to_file(work_time_info, work_time_header, work_time_value)
+        write_to_excel(_datas, _datas_analysis)
+        print("完成")
         browser.quit()
     except Exception as e:
         log_file = open("error.log", "a+")

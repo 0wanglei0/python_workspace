@@ -3,6 +3,8 @@ import numpy as np
 
 from uiautomation import WindowControl, MenuControl
 
+"""可以使用Scripts路径下的automation.py查看windows前台应用的元素信息"""
+
 wx = WindowControl(Name="微信")
 
 wx.SwitchToThisWindow()
