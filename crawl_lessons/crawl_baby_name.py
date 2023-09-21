@@ -49,11 +49,11 @@ select_date_js = """
     }
 """
 # 发送 GET 请求并获取响应
-response = requests.get(url)
+# response = requests.get(url)
 session = HTMLSession()
 resp = session.get(url)
 resp.html.render()
-select = response.html.find('select', {'id': 'year'})
+select = resp.html.find('select#year')
 print(select)
 # 解析 HTML 并找到 select 元素
 # soup = BeautifulSoup(response.text, 'html.parser')
