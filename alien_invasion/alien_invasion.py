@@ -34,6 +34,10 @@ def run_game():
 
     ship = Ship(ai_settings, screen)
     bullets = Group()
+    # 创建一个外星人
+    # alien = Alien(ai_settings, screen)
+    aliens = Group()
+    gf.create_fleet(ai_settings, screen, aliens, ship)
 
     while True:
         # 监听键盘和鼠标事件
@@ -50,7 +54,7 @@ def run_game():
         # # 屏幕展示， 在此处无限刷新，更新屏幕，营造平滑移动的效果
         # ship.blit_me()
         # pygame.display.flip()
-        gf.update_screen(ai_settings, screen, ship, bullets)
+        gf.update_screen(ai_settings, screen, ship, aliens, bullets)
 
 
 run_game()

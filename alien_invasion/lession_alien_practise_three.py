@@ -5,6 +5,8 @@ import pygame
 """
 侧面射击：将飞船放在屏幕左边，并可以上下移动，在按空格时打出向右的子弹，并在子弹离开屏幕消失后删除
 """
+
+
 class MoveImage:
     def __init__(self, screen):
         self.screen = screen
