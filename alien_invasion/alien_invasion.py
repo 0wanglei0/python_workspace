@@ -22,6 +22,12 @@ class Settings:
         self.bullet_color = 0, 0, 250
         self.bullets_allowed = 5
 
+        # 外星人设置
+        self.alien_speed_factor = 1
+        self.fleet_drop_speed = 10
+        # fleet_direction为1 表示向右移，为-1表示向左移
+        self.fleet_direction = 1
+
 
 def run_game():
     # 初始化游戏并创建一个屏幕对象
@@ -48,6 +54,7 @@ def run_game():
         gf.check_events(ai_settings, screen, ship, bullets)
         ship.update()
         gf.update_bullets(bullets)
+        gf.update_aliens(ai_settings, aliens)
         # 每次循环都重绘屏幕,填充背景颜色
         # screen.fill(bg_color)
         # screen.fill(ai_settings.bg_color)
