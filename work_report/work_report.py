@@ -4,6 +4,7 @@ import re
 import sys
 import datetime
 import time
+import traceback
 
 import execjs
 import pandas
@@ -29,14 +30,6 @@ headers = {
 }
 
 """ ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;." --add-binary "chromedriver_115.exe;." """
-
-
-def test_url_cookies():
-    url = "http://redmine-pa.mxnavi.com/login?username=&password=&login=%E7%99%BB%E5%BD%95"
-    response = requests.post(url, headers=headers)
-    print(response)
-    cookies = requests.utils.dict_from_cookiejar(response.cookies)
-    print(cookies)
 
 
 def auto_login(local_browser):
@@ -79,7 +72,7 @@ def auto_login(local_browser):
         raise Exception("browser is not load right, please retry")
 
     print("页面加载中，请稍后...")
-    time.sleep(3)
+    time.sleep(2)
     return [local_browser, url]
 
 
@@ -166,9 +159,11 @@ def total_time_to_file(table_dic):
     print_lst = [
         str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长" + "\t" + "漏填日报" + "\n")]
     fill_value = table_dic.get("values")
+    # print("fill_value: ", fill_value)
     workday = 0
     external_work = float(0)
     holiday_time = 0
+    work_at_weekend = []
     for item in fill_value:
         if len(item) != 13:
             if len(item) == 10 and item[4] == '' and item[7] == '':
@@ -221,21 +216,25 @@ def total_time_to_file(table_dic):
             weekday = calendar.weekday(year, month, day)
             if weekday == 6 or weekday == 5:
                 external_work += float(item[7])
-                print_lst.append(str(
-                    item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]) + "\t" + "" + "\t" + "" + "\n")
+                print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]
+                                     + "\t" + item[7] + "\t" + "" + "\n"))
+                work_at_weekend.append(item[0])
             else:
                 workday += 1
                 external_work += float("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))
                 print_lst.append(
                     str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7]
                         + "\t" + str("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8)))
-                        + "\t" + item[8]
-                        + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7]))) + "\n")
+                    + "\t" + item[8]
+                    + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7]))) + "\n")
     # print("workday", workday)
 
     # print("external_work ", str("%.2f" % external_work))
     # print("holiday_time", holiday_time)
+    # print("external_work: ", external_work)
     holiday_hour = external_work // 20 * 8
+    # print("holiday_hour: ", holiday_hour)
+    # print(print_lst)
     expect_worktime = len(weekdays.get_workdays()) * 8
 
     calculate_header = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
@@ -244,7 +243,7 @@ def total_time_to_file(table_dic):
                        str("%.2f" % (0 if holiday_hour - holiday_time < 0 else holiday_hour - holiday_time)),
                        "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour))]
 
-    return [print_lst, calculate_header, calculate_value]
+    return [print_lst, calculate_header, calculate_value, work_at_weekend]
 
 
 def write_to_excel(detail_datas, analysis_datas):
@@ -259,7 +258,7 @@ def write_to_excel(detail_datas, analysis_datas):
         df1.to_excel(writer, sheet_name="work_report", index=False, startrow=rows_num)
 
 
-def write_to_file(print_lst, calculate_header, calculate_value):
+def write_to_file(calculate_header, calculate_value):
     with open("work_report.xlsx", "w+", encoding="utf8") as wr:
         # wr.write(print_lst.replace(",", "\t"))
         # for string in print_lst:
@@ -279,7 +278,7 @@ def write_to_file(print_lst, calculate_header, calculate_value):
 
 def calculate_loss_time(loss_work_time):
     if loss_work_time == {}:
-        print("work report complete")
+        print("没有需要填写的日报")
         return []
 
     _key_for_choose = []
@@ -388,6 +387,7 @@ def get_current_default_browser():
         print("使用Edge")
     else:
         this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
+        print("使用Chrome")
 
     return this_browser
 
@@ -396,11 +396,11 @@ def get_current_system():
     return platform.system()
 
 
-def show_work_report(work_list, input_month, worktime_by_days_dict):
+def show_work_report(work_list, input_month, worktime_by_days_dict, work_at_weekend):
     print("请查看：")
     # print(work_list)
     tb = ptb.PrettyTable()
-    tb.field_names = ["日期", "请假类型", "请假时间", "工时", "加班时间", "在岗时长", "漏填日报"]
+    tb.field_names = work_list[0].replace("\n", "").split("\t")
     new_list = work_list[1::]
     work_days = weekdays.get_workdays_by_month(input_month)
     rows = []
@@ -409,10 +409,15 @@ def show_work_report(work_list, input_month, worktime_by_days_dict):
         field_item = item.replace("\n", "").split("\t")
         # print(field_item)
         lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6]]
+        # print(lst)
+        actual_time = field_item[5] if field_item[5] > field_item[3] else field_item[3]
         if field_item[2] != "":
-            _external = eval(field_item[2]) + eval(field_item[5]) - 8
+            _external = eval(field_item[2]) + eval(actual_time) - 8
         else:
-            _external = eval(field_item[5]) - 8
+            if field_item[0] in work_at_weekend:
+                _external = eval(actual_time)
+            else:
+                _external = eval(actual_time) - 8
 
         external_work += 0 if _external < 0 else _external
 
@@ -427,10 +432,10 @@ def show_work_report(work_list, input_month, worktime_by_days_dict):
     if len(work_days) != 0:
         for item in work_days:
             string_item = item.strftime("%Y-%m-%d")
-            loss_work_time_dict[string_item] = []
-
             if string_item in worktime_by_days_dict.keys():
-                loss_list = [string_item, "", "", "", "", worktime_by_days_dict[string_item], worktime_by_days_dict[string_item]]
+                loss_work_time_dict[string_item] = []
+                loss_list = [string_item, "", "", "", "", worktime_by_days_dict[string_item],
+                             worktime_by_days_dict[string_item]]
                 _external = eval(worktime_by_days_dict[string_item]) - 8
                 external_work += 0 if _external < 0 else _external
                 worktime_by_days_dict.pop(string_item)
@@ -438,6 +443,8 @@ def show_work_report(work_list, input_month, worktime_by_days_dict):
 
     if len(worktime_by_days_dict) != 0:
         for key in worktime_by_days_dict.keys():
+            if key in work_at_weekend:
+                continue
             value = worktime_by_days_dict[key]
             if value == '0.0':
                 continue
@@ -508,9 +515,10 @@ if __name__ == '__main__':
         # work_time_by_days_dict = {'2023-09-01': '8.33', '2023-09-02': '0.0', '2023-09-03': '0.0', '2023-09-04': '10.15', '2023-09-05': '11.73', '2023-09-06': '7.61', '2023-09-07': '5.48', '2023-09-08': '8.08', '2023-09-09': '0.0', '2023-09-10': '0.0', '2023-09-11': '2.41'}
         work_time_dict = get_work_time(origin_url)
         print("统计已登记日报完成")
-        work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
+        # print(work_time_dict)
+        work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict)
         print("表格制作完成")
-        _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
+        _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict, work_weekend)
         # print(table_csv_string)
         # print(_external_work)
         # print(work_time_value)
@@ -537,12 +545,12 @@ if __name__ == '__main__':
             if log_result != 0:
                 re_cat = input("是否重新查看工作报告：Y/N")
                 if re_cat == "Y" or re_cat == "y":
-                    work_time_by_days_dict = get_time_at_company(year_month)
+                    # work_time_by_days_dict = get_time_at_company(year_month)
 
                     work_time_dict = get_work_time(origin_url)
 
-                    work_time_info, work_time_header, work_time_value = total_time_to_file(work_time_dict)
-                    _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict)
+                    work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict)
+                    _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict, work_weekend)
                     work_time_value[1] = "%.2f" % _external_work
 
                     # print(table_csv_string)
@@ -553,9 +561,11 @@ if __name__ == '__main__':
         print("完成")
         browser.quit()
     except Exception as e:
+        # print(e)
         log_file = open("error.log", "a+")
         now = datetime.datetime.now()
-        print(now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3], e, file=log_file)
+        error_message = traceback.format_exc()
+        print(now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3], error_message, file=log_file)
         log_file.close()
 
     while True:
