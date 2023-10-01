@@ -7,7 +7,6 @@ for item in list2:
 
 print(list1)
 
-
 string = "message"
 s_dict = {}
 for s in string[:]:
@@ -16,3 +15,5 @@ for s in string[:]:
         continue
     s_dict[s] = 1
 print(s_dict)
+
+# netstat -an 查看系统占用端口

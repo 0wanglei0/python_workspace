@@ -27,6 +27,7 @@ def start_game(ai_settings, screen, aliens, ship, bullets, stats):
     stats.game_active = True
     aliens.empty()
     bullets.empty()
+    ai_settings.initialize_dynamic_settings()
     create_fleet(ai_settings, screen, aliens, ship)
     ship.center_ship()
 
@@ -47,7 +48,6 @@ def check_keyup_events(event, ship):
 # 输入时注意中英文输入法
 def check_events(ai_settings, screen, ship, aliens, bullets, stats, play_button):
     for event in pygame.event.get():
-        print(event.type == pygame.KEYDOWN)
         if event.type == pygame.QUIT:
             sys.exit()
         elif event.type == pygame.KEYDOWN:
@@ -67,35 +67,43 @@ def check_play_button(ai_settings, screen, ship, aliens, bullets, stats, play_bu
         start_game(ai_settings, screen, aliens, ship, bullets, stats)
 
 
-def update_screen(ai_settings, screen, ship, aliens, bullets, stats, play_button):
+def update_screen(ai_settings, screen, ship, aliens, bullets, stats, play_button, sb):
     """更新屏幕上的图像，并切换到新屏幕"""
     screen.fill(ai_settings.bg_color)
     for bullet in bullets.sprites():
         bullet.draw_bullet()
     ship.blit_me()
     aliens.draw(screen)
+    sb.show_score()
     if not stats.game_active:
         play_button.draw_button()  # 最后绘制，默认UI在最上层
     pygame.display.flip()
 
 
-def update_bullets(ai_settings, screen, ship, aliens, bullets):
+def update_bullets(ai_settings, screen, ship, aliens, bullets, stats, sb):
     bullets.update()
 
     for bullet in bullets.copy():
         if bullet.rect.bottom <= 0:
             bullets.remove(bullet)
 
-    check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets)
+    check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets, stats, sb)
 
 
-def check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets):
+def check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets, stats, sb):
     # 检查子弹是否有打中外星人
     # 如果击中，子弹和外星人都删除
     collisions = pygame.sprite.groupcollide(bullets, aliens, True, True)
 
+    if collisions:
+        for aliens in collisions.values():
+            stats.score += ai_settings.alien_score * len(aliens)
+            sb.prep_score()
+        check_high_score(stats, sb)
+
     if len(aliens) == 0:
         bullets.empty()
+        ai_settings.increase_speed()
         create_fleet(ai_settings, screen, aliens, ship)
 
 
@@ -190,3 +198,7 @@ def check_aliens_bottom(ai_settings, stats, screen, ship, aliens, bullets):
             break
 
 
+def check_high_score(stats, sb):
+    if stats.score > stats.high_score:
+        stats.high_score = stats.score
+        sb.prep_high_score()

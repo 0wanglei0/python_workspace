@@ -6,6 +6,7 @@ from ships import Ship  # 先from再import
 import game_functions as gf
 from pygame.sprite import Group
 from game_stats import GameStats
+from scoreboard import Scoreboard
 
 
 class Settings:
@@ -13,6 +14,7 @@ class Settings:
     def __init__(self):
         """初始化游戏的设置"""
         # 屏幕设置
+        self.alien_point = 1
         self.screen_width = 1200
         self.screen_height = 800
         self.bg_color = (230, 230, 230)
@@ -34,6 +36,25 @@ class Settings:
         self.ship_speed_factor = 1.5
         self.ship_limit = 3
 
+        self.speedup_factor = 1.1
+        self.score_scale = 2
+
+        self.initialize_dynamic_settings()
+
+    def initialize_dynamic_settings(self):
+        self.ship_speed_factor = 1.5
+        self.bullet_speed_factor = 3
+        self.alien_speed_factor = 1
+        # 1为右，0为左
+        self.fleet_direction = 1
+        self.alien_point = 1
+
+    def increase_speed(self):
+        self.ship_speed_factor *= self.speedup_factor
+        self.bullet_speed_factor *= self.speedup_factor
+        self.alien_speed_factor *= self.speedup_factor
+        self.alien_point *= self.score_scale
+
 
 def run_game():
     # 初始化游戏并创建一个屏幕对象
@@ -54,6 +75,8 @@ def run_game():
     gf.create_fleet(ai_settings, screen, aliens, ship)
 
     game_stats = GameStats(ai_settings)
+    sb = Scoreboard(ai_settings, screen, game_stats)
+
     while True:
         # 监听键盘和鼠标事件
         # for event in pygame.event.get():
@@ -63,7 +86,7 @@ def run_game():
         gf.check_events(ai_settings, screen, ship, aliens, bullets, game_stats, play_button)
         if game_stats.game_active:
             ship.update()
-            gf.update_bullets(ai_settings, screen, ship, aliens, bullets)
+            gf.update_bullets(ai_settings, screen, ship, aliens, bullets, game_stats, sb)
             gf.update_aliens(ai_settings, game_stats, screen, ship, aliens, bullets)
         # 每次循环都重绘屏幕,填充背景颜色
         # screen.fill(bg_color)
@@ -71,7 +94,7 @@ def run_game():
         # # 屏幕展示， 在此处无限刷新，更新屏幕，营造平滑移动的效果
         # ship.blit_me()
         # pygame.display.flip()
-        gf.update_screen(ai_settings, screen, ship, aliens, bullets, game_stats, play_button)
+        gf.update_screen(ai_settings, screen, ship, aliens, bullets, game_stats, play_button, sb)
 
 
 if __name__ == "__main__":
