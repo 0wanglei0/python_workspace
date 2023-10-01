@@ -111,6 +111,9 @@ def get_days_until_today_with_month(input_month):
 if __name__ == "__main__":
     # year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
     # print(get_start_end_days_string_by_month(year_month))
-    print(get_days_until_today_with_month(""))
-    print("-------------")
-    print(get_days_until_today())
+    # print(get_days_until_today_with_month(""))
+    # print("-------------")
+    # print(get_days_until_today())
+
+    work_days = get_days_until_today_with_month("9")
+    print(work_days)
