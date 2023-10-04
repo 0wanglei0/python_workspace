@@ -83,11 +83,11 @@ def run_game():
         #     if event.type == pygame.QUIT:
         #         sys.exit()
         # gf.check_events()
-        gf.check_events(ai_settings, screen, ship, aliens, bullets, game_stats, play_button)
+        gf.check_events(ai_settings, screen, ship, aliens, bullets, game_stats, play_button, sb)
         if game_stats.game_active:
             ship.update()
             gf.update_bullets(ai_settings, screen, ship, aliens, bullets, game_stats, sb)
-            gf.update_aliens(ai_settings, game_stats, screen, ship, aliens, bullets)
+            gf.update_aliens(ai_settings, game_stats, screen, ship, aliens, bullets, sb)
         # 每次循环都重绘屏幕,填充背景颜色
         # screen.fill(bg_color)
         # screen.fill(ai_settings.bg_color)
