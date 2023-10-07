@@ -428,7 +428,8 @@ def show_work_report(work_list, input_month, worktime_by_days_dict, work_at_week
             if field_item[6] != "" and field_item[6] != "0.00":
                 loss_work_time_dict[field_item[0]] = [field_item[2], field_item[3], field_item[5]]
             work_days.pop(work_days.index(date))
-            worktime_by_days_dict.pop(date.strftime("%Y-%m-%d"))
+            if len(worktime_by_days_dict) != 0:
+                worktime_by_days_dict.pop(date.strftime("%Y-%m-%d"))
     if len(work_days) != 0:
         for item in work_days:
             string_item = item.strftime("%Y-%m-%d")
