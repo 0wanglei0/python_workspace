@@ -154,7 +154,7 @@ def get_work_time(url):
     return table_dic
 
 
-def total_time_to_file(table_dic):
+def total_time_to_file(table_dic, year_month):
     print("统计时间制成表格")
     # print(table_dic)
     print_lst = [
@@ -239,8 +239,7 @@ def total_time_to_file(table_dic):
     holiday_hour = external_work // 20 * 8
     # print("holiday_hour: ", holiday_hour)
     # print(print_lst)
-    expect_worktime = len(weekdays.get_workdays()) * 8
-
+    expect_worktime = len(weekdays.get_workdays_by_month(year_month)) * 8
     calculate_header = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)), "",
                        str("%.2f" % external_work), holiday_time, holiday_hour,
@@ -524,7 +523,7 @@ if __name__ == '__main__':
         work_time_dict = get_work_time(origin_url)
         print("统计已登记日报完成")
         # print(work_time_dict)
-        work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict)
+        work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict, year_month)
         print("表格制作完成")
         _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict, work_weekend)
         # print(table_csv_string)
@@ -557,7 +556,7 @@ if __name__ == '__main__':
 
                     work_time_dict = get_work_time(origin_url)
 
-                    work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict)
+                    work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict, year_month)
                     _external_work, _datas = show_work_report(work_time_info, year_month, work_time_by_days_dict, work_weekend)
                     work_time_value[1] = "%.2f" % _external_work
 
