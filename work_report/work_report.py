@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import calendar
 import platform
 import re
@@ -214,7 +215,10 @@ def total_time_to_file(table_dic):
             month = int(this_date[1])
             day = int(this_date[2])
             weekday = calendar.weekday(year, month, day)
-            if weekday == 6 or weekday == 5:
+            work_date = datetime.date(year, month, day)
+            # print(work_date)
+            # print(weekdays.get_workdays_by_month(str(month)))
+            if (weekday == 6 or weekday == 5) and work_date not in weekdays.get_workdays_by_month(str(month)):
                 external_work += float(item[7])
                 print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]
                                      + "\t" + item[7] + "\t" + "" + "\n"))
@@ -310,7 +314,7 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
 
         choose_key = _key_for_choose[choose_index]
         choose_value = loss_work_time_dict.get(choose_key)
-        print(f"您选择的序号是：{choose_value}")
+        print(f"您选择的序号是：{_chooses[choose_index]}")
         all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
         local_browser.get(all_issues_url)
         time.sleep(2)
@@ -397,7 +401,6 @@ def get_current_system():
 
 
 def show_work_report(work_list, input_month, worktime_by_days_dict, work_at_weekend):
-    print("请查看：")
     # print(work_list)
     tb = ptb.PrettyTable()
     tb.field_names = work_list[0].replace("\n", "").split("\t")
@@ -426,7 +429,11 @@ def show_work_report(work_list, input_month, worktime_by_days_dict, work_at_week
         date = datetime.date(int(date_date[0]), int(date_date[1]), int(date_date[2]))
         if date in work_days:
             if field_item[6] != "" and field_item[6] != "0.00":
-                loss_work_time_dict[field_item[0]] = [field_item[2], field_item[3], field_item[5]]
+                remain_work_time = float(field_item[5]) - float(field_item[3])
+                if remain_work_time < float(field_item[6]):
+                    print(f"{field_item[0]} 是请假了吗？")
+                else:
+                    loss_work_time_dict[field_item[0]] = [field_item[2], field_item[3], field_item[5]]
             work_days.pop(work_days.index(date))
             if len(worktime_by_days_dict) != 0:
                 worktime_by_days_dict.pop(date.strftime("%Y-%m-%d"))
@@ -456,7 +463,7 @@ def show_work_report(work_list, input_month, worktime_by_days_dict, work_at_week
 
     rows.sort(key=lambda i: i[0], reverse=False)
     tb.add_rows(rows)
-    # print(loss_work_time_dict)
+    print("请查看：")
     print(tb)
     datas = {
         tb.field_names[0]: list(item[0] for item in rows),
@@ -546,7 +553,7 @@ if __name__ == '__main__':
             if log_result != 0:
                 re_cat = input("是否重新查看工作报告：Y/N")
                 if re_cat == "Y" or re_cat == "y":
-                    # work_time_by_days_dict = get_time_at_company(year_month)
+                    work_time_by_days_dict = get_time_at_company(year_month)
 
                     work_time_dict = get_work_time(origin_url)
 
