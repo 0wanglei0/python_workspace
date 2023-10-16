@@ -115,5 +115,9 @@ if __name__ == "__main__":
     # print("-------------")
     # print(get_days_until_today())
 
-    work_days = get_days_until_today_with_month("9")
-    print(work_days)
+    # work_days = get_days_until_today_with_month("9")
+    # print(work_days)
+    work_date = datetime.date(2023, 10, 7)
+    print(work_date)
+    print(get_workdays())
+    print(work_date in get_workdays())
