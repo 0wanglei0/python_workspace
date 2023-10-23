@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import calendar
 import platform
 import re
 import sys
@@ -7,7 +6,6 @@ import datetime
 import time
 import traceback
 
-import execjs
 import pandas
 from bs4 import BeautifulSoup
 from lxml import etree
@@ -157,7 +155,7 @@ def get_work_time(url):
     return table_dic
 
 
-def total_time_to_file(table_dic, year_month):
+def total_time_to_file(table_dic, input_month):
     log.info_out("统计时间制成表格")
     # print(table_dic)
     print_lst = [
@@ -244,7 +242,7 @@ def total_time_to_file(table_dic, year_month):
     holiday_hour = external_work // 20 * 8
     log.d("holiday_hour: ", holiday_hour)
     log.info(print_lst)
-    expect_worktime = len(weekdays.get_workdays_by_month(year_month)) * 8
+    expect_worktime = len(weekdays.get_workdays_by_month(input_month)) * 8
     calculate_header = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)), "",
                        str("%.2f" % external_work), holiday_time, holiday_hour,
@@ -318,8 +316,6 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
             log.info_out("请输入有效的序号")
             continue
 
-        choose_key = _key_for_choose[choose_index]
-        choose_value = loss_work_time_dict.get(choose_key)
         log.info_out(f"您选择的序号是：{_chooses[choose_index]}")
         all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
         local_browser.get(all_issues_url)
@@ -580,7 +576,8 @@ if __name__ == '__main__':
 
                     work_time_dict = get_work_time(origin_url)
 
-                    work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict, year_month)
+                    work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict,
+                                                                                                         year_month)
                     _external_work, _datas = show_work_report(work_time_info, work_time_by_days_dict, work_weekend)
                     work_time_value[1] = "%.2f" % _external_work
 
@@ -592,7 +589,7 @@ if __name__ == '__main__':
         log.info_out("完成")
         browser.quit()
     except Exception as e:
-        # print(e)
+        log.info(e)
         log_file = open("error.log", "a+")
         now = datetime.datetime.now()
         error_message = traceback.format_exc()

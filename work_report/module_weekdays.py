@@ -1,9 +1,9 @@
 import chinese_calendar
 
-
 import calendar
 import datetime
 import time
+
 
 def get_first_and_end_day_of_month():
     today_date = get_today_date()
@@ -11,6 +11,7 @@ def get_first_and_end_day_of_month():
     start_date = datetime.datetime(today_date.year, today_date.month, last_day[0])
     last_date = datetime.datetime(today_date.year, today_date.month, last_day[1])
     return [start_date.date(), last_date.date()]
+
 
 def get_start_end_days_string():
     days = get_first_and_end_day_of_month()
@@ -43,6 +44,7 @@ def get_first_and_end_day_by_month(input_month):
     last_date = datetime.datetime(target_year, target_month, last_day)
     return [start_date.date(), last_date.date()]
 
+
 def get_start_end_days_string_by_month(input_month):
     target_date = get_first_and_end_day_by_month(input_month)
 
@@ -62,6 +64,7 @@ def get_today():
 def get_workdays():
     start_end_days = get_first_and_end_day_of_month()
     return chinese_calendar.get_workdays(start_end_days[0], start_end_days[1])
+
 
 def get_workdays_by_month(input_month):
     start_end_days = get_first_and_end_day_by_month(input_month)
@@ -86,6 +89,7 @@ def get_format_dates(start_day, end_day):
 
     # print(formatted_dates)
     return formatted_dates
+
 
 def get_days_until_today():
     today = datetime.date.today()
