@@ -70,14 +70,14 @@ def get_workdays_by_month(input_month):
 
 def is_workday(date):
     try:
-        if type(date) == "str":
-            date_date = datetime.datetime.strptime(date, "%Y-%m-%d")
+        if isinstance(date, str):
+            date_date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
         else:
             date_date = date
         return chinese_calendar.is_workday(date_date)
     except Exception as e:
         print("格式错误: ", e)
-        return ""
+        return True
 
 
 def get_format_dates(start_day, end_day):
