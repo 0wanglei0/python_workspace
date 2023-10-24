@@ -1,5 +1,13 @@
 import socket
 from socket import *  # 可以省略部分调用中的socket.
+import cv2
+import numpy as np
+
+"""
+1.客户端无限发送
+2.客户端如果发送一个标志位，则退出客户端
+3.服务器端收到什么就返回什么
+"""
 
 
 # 创建socket，2种，TCP和UDP
@@ -20,18 +28,43 @@ client_socket = socket(AF_INET, SOCK_DGRAM)
 """
 server_address = ("192.168.22.25", 8000)
 
+# 读取图片
+image = cv2.imread('1698160724065.jpg', cv2.IMREAD_COLOR)
+# cv2.imshow("Received Image", image)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+# # 将图片转换为字节流
+# image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
+# 将图片转换为字节流
+_, buffer = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+image_bytes = buffer.tobytes()
+
+# 保存图片
+# cv2.imwrite('received_image.jpg', image)
+# cv2.imshow("Received Image", image)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
 """
 3.准备数据，字符串使用utf-8编码，把数据转成字节数组bytes，否则无法通过协议传输
 """
-datas = input("请输入内容：").encode("utf-8")
+while True:
+    datas = input("请输入内容：").encode("utf-8")
+    print(datas)
 
-"""
-4.发送数据，sendto(数据, 接收目标)
-"""
-client_socket.sendto(datas, server_address)
+    if "1" == str(datas.decode("UTF-8")):
+        client_socket.sendto(image_bytes, server_address)
+        continue
 
-data = client_socket.recvfrom(1024)
-print(data)
+    """
+    4.发送数据，sendto(数据, 接收目标)
+    """
+    client_socket.sendto(datas, server_address)
+    data = client_socket.recvfrom(1024)
+    print("返回的数据是：", str(data[0].decode("UTF-8")))
+    if str(data[0].decode("UTF-8")) == "q":
+        break
+
 """
 5.关闭socket，释放资源
 """
