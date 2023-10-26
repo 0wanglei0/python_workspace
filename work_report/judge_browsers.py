@@ -1,6 +1,7 @@
 import winreg  # windows注册表
 import os
 
+
 # 取得浏览器的安装路径
 def get_path(mainkey, subkey):
     try:
@@ -11,6 +12,7 @@ def get_path(mainkey, subkey):
     full_file_name = value.split(',')[0]  # 截去逗号后面的部分
     [dir_name, file_name] = os.path.split(full_file_name)  # 分离文件名和路径
     return dir_name
+
 
 def init_edge():
     # 初始化变量

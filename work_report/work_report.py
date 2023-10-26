@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import platform
 import re
 import sys
@@ -388,12 +389,14 @@ def get_current_default_browser():
     log.info_out("浏览器加载中，请稍后...")
     # print(get_current_system() == "Windows")
     # print(judge.init_edge())
+    this_browser = None
     if get_current_system() == "Windows" and judge.init_edge():
         this_browser = webdriver.Edge()
         log.info_out("使用Edge")
-    else:
-        this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
-        log.info_out("使用Chrome")
+
+        if this_browser is None:
+            this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
+            log.info_out("使用Chrome")
 
     if this_browser is None:
         log.info_out("没有找到合适的浏览器")
