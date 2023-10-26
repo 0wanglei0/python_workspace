@@ -25,6 +25,7 @@ import prettytable as ptb
 
 from log_print import Log
 import argparse
+from selenium.webdriver.edge.options import Options as EdgeOptions
 
 headers = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -395,7 +396,11 @@ def get_current_default_browser():
         if get_current_system() == "Windows":
             base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
             executable_path = os.path.join(base_path, 'msedgedriver.exe')
-            this_browser = webdriver.Edge(service=Service(executable_path=executable_path))
+            options = EdgeOptions()
+            options.use_chromium = True
+            options.add_argument("headless")
+            options.add_argument("disable-gpu")
+            this_browser = webdriver.Edge(service=Service(executable_path=executable_path), options=options)
             log.d("this_browser", this_browser.service.path)
             log.info_out("使用Edge")
     except Exception as error:
