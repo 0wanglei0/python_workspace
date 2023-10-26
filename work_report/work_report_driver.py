@@ -392,7 +392,7 @@ def get_current_default_browser():
     this_browser = None
     try:
         log.info(judge.init_edge())
-        if get_current_system() == "Windows" and judge.init_edge():
+        if get_current_system() == "Windows":
             base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
             executable_path = os.path.join(base_path, 'msedgedriver.exe')
             this_browser = webdriver.Edge(service=Service(executable_path=executable_path))
@@ -407,7 +407,7 @@ def get_current_default_browser():
         log.info_out("使用Chrome")
 
     if this_browser is None:
-        log.info_out("没有找到合适的浏览器")
+        log.info_out("没有找到合适的浏览器或驱动")
         return None
 
     return this_browser
