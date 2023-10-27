@@ -1,7 +1,7 @@
 from random import choice
 
 
-class RandomWalk():
+class RandomWalk:
     """一个生成随机漫步数据的类"""
 
     def __init__(self, num_points=5000):

@@ -13,6 +13,7 @@ from lxml import etree
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.edge.options import Options as EdgeOptions
 
 import requests
 import getpass
@@ -25,7 +26,6 @@ import prettytable as ptb
 
 from log_print import Log
 import argparse
-from selenium.webdriver.edge.options import Options as EdgeOptions
 
 headers = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',

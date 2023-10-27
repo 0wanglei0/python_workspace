@@ -394,9 +394,9 @@ def get_current_default_browser():
         this_browser = webdriver.Edge()
         log.info_out("使用Edge")
 
-        if this_browser is None:
-            this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
-            log.info_out("使用Chrome")
+    if this_browser is None:
+        this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
+        log.info_out("使用Chrome")
 
     if this_browser is None:
         log.info_out("没有找到合适的浏览器")

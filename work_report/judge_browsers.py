@@ -1,5 +1,6 @@
 import winreg  # windows注册表
 import os
+import psutil
 
 
 # 取得浏览器的安装路径
@@ -32,8 +33,18 @@ def init_edge():
     path = get_path(winreg.HKEY_LOCAL_MACHINE, ico_edge)
     return path != "未安装"
 
+
 def init_chrome():
     ico_google = r"SOFTWARE\Clients\StartMenuInternet\Google Chrome\DefaultIcon"
     path = get_path(winreg.HKEY_LOCAL_MACHINE, ico_google)
     return path != "未安装"
 
+
+def is_browser_open(browser_name):
+    for process in psutil.process_iter():
+        if browser_name.lower() in process.name().lower():
+            return True
+        return False
+
+
+# is_browser_open("MicrosoftEdge"):

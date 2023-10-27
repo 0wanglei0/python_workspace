@@ -1,8 +1,8 @@
 
-current_money = 3144.48
-current_mortgage = 2001.52
+current_money = 4985.11
+current_mortgage = 1998.5
 month = 10
-for i in range(60):
+for i in range(120):
     month = month + 1
     if month > 12:
         month = 1

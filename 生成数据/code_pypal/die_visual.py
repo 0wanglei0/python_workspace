@@ -2,29 +2,20 @@ import pygal
 
 from die import Die
 
-die = Die()
+die = Die(8)
 die8 = Die(8)
 
-results = []
-for roll_num in range(100):
-    result = die.roll()
-    results.append(result)
-
-results8 = []
-for roll_num in range(100):
-    result = die8.roll()
-    results8.append(result)
+results = [die.roll() for i in range(1000)]
+results8 = [die8.roll() for j in range(1000)]
 print(results8)
 
-frequencies = []
-for value in range(1, die.num_sides + 1):
-    frequency = results.count(value)
-    frequencies.append(frequency)
-
-frequencies8 = []
-for value in range(1, die8.num_sides + 1):
-    frequency = results8.count(value)
-    frequencies8.append(frequency)
+frequencies = [results.count(value) for value in range(1, die.num_sides + 1)]
+frequencies8 = [results8.count(value) for value in range(1, die8.num_sides + 1)]
+#
+# frequencies8 = []
+# for value in range(1, die8.num_sides + 1):
+#     frequency = results8.count(value)
+#     frequencies8.append(frequency)
 
 hist = pygal.Bar()
 print(frequencies8)
