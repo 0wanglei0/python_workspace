@@ -294,7 +294,11 @@ def calculate_loss_time(loss_work_time):
     _keys = list(loss_work_time.keys())
     chooses = []
     log.info(_keys)
-    for index in range(len(_keys) - 1):
+    input_date = weekdays.get_first_and_end_day_by_month(year_month)
+    key_len = len(_keys) - 1
+    if input_date[0].month != weekdays.get_current_month():
+        key_len = len(_keys)
+    for index in range(key_len):
         choose = f"{index}.{_keys[index]}"
         chooses.append(choose)
         _key_for_choose.append(_keys[index])

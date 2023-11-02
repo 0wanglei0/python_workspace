@@ -295,7 +295,11 @@ def calculate_loss_time(loss_work_time):
     _keys = list(loss_work_time.keys())
     chooses = []
     log.info(_keys)
-    for index in range(len(_keys) - 1):
+    input_date = weekdays.get_first_and_end_day_by_month(year_month)
+    key_len = len(_keys) - 1
+    if input_date[0].month != weekdays.get_current_month():
+        key_len = len(_keys)
+    for index in range(key_len):
         choose = f"{index}.{_keys[index]}"
         chooses.append(choose)
         _key_for_choose.append(_keys[index])
@@ -318,6 +322,7 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
             log.info_out("请输入有效的序号")
             continue
 
+        # TODO 计算当前工时有问题
         log.info_out(f"您选择的序号是：{_chooses[choose_index]}")
         all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
         local_browser.get(all_issues_url)
@@ -327,6 +332,7 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
         local_browser.get(url)
 
         date_input = local_browser.find_element(By.ID, "time_entry_spent_on")
+        log.d("_keys[choose_index] ", _keys[choose_index])
         use_js_change_value(local_browser, "time_entry_spent_on", _keys[choose_index])
         time.sleep(1)
 

@@ -57,6 +57,10 @@ def get_today_date():
     return datetime.datetime.strptime(today, '%Y-%m-%d')
 
 
+def get_current_month():
+    return time.localtime(time.time()).tm_mon
+
+
 def get_today():
     return time.strftime("%Y-%m-%d", time.localtime(time.time()))
 
@@ -121,7 +125,8 @@ if __name__ == "__main__":
 
     # work_days = get_days_until_today_with_month("9")
     # print(work_days)
-    work_date = datetime.date(2023, 10, 7)
-    print(work_date)
-    print(get_workdays())
-    print(work_date in get_workdays())
+    # work_date = datetime.date(2023, 10, 7)
+    # print(work_date)
+    # print(get_workdays())
+    # print(work_date in get_workdays())
+    print(time.localtime(time.time()).tm_mon)
