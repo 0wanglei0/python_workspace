@@ -9,8 +9,8 @@ import random
 import matplotlib.pyplot as plt
 
 # 获取2010-2020 S&P500和META的数据
-data_sp500 = yf.download('^GSPC', start='2010-01-01', end='2020-12-31')
-data_meta = yf.download('META', start='2010-01-01', end='2020-12-31')
+data_sp500 = yf.download('金科股份', start='2020-01-01', end='2020-12-31', timeout=50)
+data_meta = yf.download('META', start='2020-01-01', end='2020-12-31', timeout=50)
 
 # 数据预处理，比如合并数据等
 # ...
