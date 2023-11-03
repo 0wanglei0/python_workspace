@@ -69,6 +69,7 @@ import requests
 #         # print(row[6].split(","))
 #         response.append(row[6].split(","))
 data = pd.DataFrame(data[1::])
+data.to_csv('eastmoney_stock_data.csv', index=False)
 
 data['date'] = pd.to_datetime(data[0])
 data['open'] = pd.to_numeric(data[1])
