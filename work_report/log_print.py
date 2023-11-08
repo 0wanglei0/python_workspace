@@ -2,7 +2,7 @@ import datetime
 
 
 class Log:
-    is_print_log = 0
+    is_print_log = 1
 
     def __init__(self, is_print_log):
         self.is_print_log = is_print_log

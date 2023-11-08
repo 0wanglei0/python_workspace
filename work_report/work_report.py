@@ -12,7 +12,10 @@ from bs4 import BeautifulSoup
 from lxml import etree
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.common.by import By
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriver
 
 import requests
 import getpass
@@ -395,6 +398,11 @@ def get_current_default_browser():
     # print(judge.init_edge())
     this_browser = None
     if get_current_system() == "Windows" and judge.init_edge():
+        # edge_manager = EdgeChromiumDriverManager().driver
+        # EdgeChromiumDriver.get_driver_download_url(edge_manager, "x64").get_stable_release_version()
+        # this_browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
+        driver = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
+
         this_browser = webdriver.Edge()
         log.info_out("使用Edge")
 

@@ -14,6 +14,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 import requests
 import getpass
@@ -44,8 +46,8 @@ def auto_login(local_browser):
           days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
     local_browser.get(url)
 
-    time.sleep(3)
-    username_element = local_browser.find_element(By.ID, "username")
+    # 等待页面加载完毕
+    username_element = wait.until(EC.presence_of_element_located((By.ID, "username")))
     password_element = local_browser.find_element(By.ID, "password")
     login_button = local_browser.find_element(By.NAME, "login")
     # print(username)
@@ -68,19 +70,19 @@ def auto_login(local_browser):
 
     if username_element:
         username_element.send_keys(username)
-        time.sleep(1)
+        time.sleep(0.5)
         password_element.send_keys(password)
-        time.sleep(1)
+        time.sleep(0.5)
         login_button.click()
     else:
         raise Exception("browser is not load right, please retry")
 
     log.info_out("页面加载中，请稍后...")
-    time.sleep(2)
     return [local_browser, url]
 
 
 def set_cookie(local_browser):
+    time.sleep(0.5)
     cookie = local_browser.get_cookies()[0].get("value")
     headers["Cookie"] = "_redmine_session=" + cookie
 
@@ -326,12 +328,11 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
         log.info_out(f"您选择的序号是：{_chooses[choose_index]}")
         all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
         local_browser.get(all_issues_url)
-        time.sleep(2)
         issue_id = input("请输入要登记工时的任务id：")
         url = f"https://redmine-pa.mxnavi.com/issues/{issue_id}/time_entries/new"
         local_browser.get(url)
 
-        date_input = local_browser.find_element(By.ID, "time_entry_spent_on")
+        date_input = wait.until(EC.presence_of_element_located((By.ID, "time_entry_spent_on")))
         log.d("_keys[choose_index] ", _keys[choose_index])
         use_js_change_value(local_browser, "time_entry_spent_on", _keys[choose_index])
         time.sleep(1)
@@ -364,7 +365,7 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
             else:
                 commit_button.click()
 
-        time.sleep(3)
+        time.sleep(1)
         residue_time = float(total_time) - float(logged_time) - float(input_work_hours)
         if len(key_for_choose) == 0 and residue_time == 0:
             key_for_choose.pop(choose_index)
@@ -403,9 +404,9 @@ def get_current_default_browser():
             base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
             executable_path = os.path.join(base_path, 'msedgedriver.exe')
             options = EdgeOptions()
-            options.use_chromium = True
-            options.add_argument("headless")
-            options.add_argument("disable-gpu")
+            # options.use_chromium = True
+            # options.add_argument("headless")
+            # options.add_argument("disable-gpu")
             this_browser = webdriver.Edge(service=Service(executable_path=executable_path), options=options)
             log.d("this_browser", this_browser.service.path)
             log.info_out("使用Edge")
@@ -555,6 +556,7 @@ if __name__ == '__main__':
             sys.exit()
 
         log.info_out("加载完成！")
+        wait = WebDriverWait(browser, 3)
         browser, origin_url = auto_login(browser)
         set_cookie(browser)
         log.info_out("登录成功")
