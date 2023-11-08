@@ -15,8 +15,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.common.by import By
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
-from webdriver_manager.microsoft import EdgeChromiumDriver
-
 import requests
 import getpass
 
@@ -394,16 +392,10 @@ def use_js_change_value(_browser, element_id, value):
 
 def get_current_default_browser():
     log.info_out("浏览器加载中，请稍后...")
-    # print(get_current_system() == "Windows")
-    # print(judge.init_edge())
+
     this_browser = None
     if get_current_system() == "Windows" and judge.init_edge():
-        # edge_manager = EdgeChromiumDriverManager().driver
-        # EdgeChromiumDriver.get_driver_download_url(edge_manager, "x64").get_stable_release_version()
-        # this_browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
-        driver = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
-
-        this_browser = webdriver.Edge()
+        this_browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
         log.info_out("使用Edge")
 
     if this_browser is None:
