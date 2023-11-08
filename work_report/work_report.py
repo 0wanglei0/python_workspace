@@ -395,6 +395,7 @@ def get_current_default_browser():
 
     this_browser = None
     if get_current_system() == "Windows" and judge.init_edge():
+        # 如果这里出现SSL异常，可能是应为开了代理导致SSL验证不过
         this_browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
         log.info_out("使用Edge")
 
