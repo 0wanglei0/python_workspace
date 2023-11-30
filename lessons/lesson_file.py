@@ -61,7 +61,7 @@ close       写入文件，关闭文件
 """
 a = 0
 if a:
-    src = open("../arrow_down_n.png", "rb")
+    src = open("../马士兵课程/python/socket编程/code_net/source.png", "rb")
 
     target = open("../target_file.png", "wb")
 
