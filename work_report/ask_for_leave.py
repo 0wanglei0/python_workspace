@@ -9,3 +9,6 @@
 string = '1.0 + 1.0 = 2.0'
 if "=" in string:
     print(string.split("= ")[1])
+
+
+a, b = []

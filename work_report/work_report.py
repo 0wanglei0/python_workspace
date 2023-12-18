@@ -1,96 +1,49 @@
 # -*- coding: utf-8 -*-
-import os
-import platform
 import re
 import sys
 import datetime
 import time
 import traceback
 
-import pandas
 from bs4 import BeautifulSoup
 from lxml import etree
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.edge.service import Service as EdgeService
-from selenium.webdriver.common.by import By
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
-import requests
-import getpass
 
-import judge_browsers as judge
-import chrome_driver_update as cdu
+from selenium.webdriver.common.by import By
+import requests
+
 import module_weekdays as weekdays
-import module_crypto as crypto
 import prettytable as ptb
 
 from log_print import Log
 import argparse
-
-headers = {
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'Accept-Encoding': "gzip, deflate",
-    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-}
+import module_browser as m_browser
+import module_write_file as m_write
 
 """ ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;." --add-binary "chromedriver_115.exe;." """
 
-
-def auto_login(local_browser):
-    log.info_out("正在自动登录,请稍后...")
-    days = weekdays.get_start_end_days_string_by_month(year_month)
-    log.d("days", days)
-    url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
-          days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
-    local_browser.get(url)
-
-    time.sleep(3)
-    username_element = local_browser.find_element(By.ID, "username")
-    password_element = local_browser.find_element(By.ID, "password")
-    login_button = local_browser.find_element(By.NAME, "login")
-    # print(username)
-    # print(password)
-    with open("user_info.txt", "a+", encoding="utf8") as user_info:
-        user_info.seek(0)
-        lines = user_info.readlines()
-        if not lines:
-            username = input("用户名:")
-            password = getpass.getpass("password:")
-            encrypt_pass = crypto.aes_encrypt(password)
-            log.save_to_file(username, user_info)
-            log.save_to_file(encrypt_pass, user_info)
-        else:
-            username = lines[0].replace("\n", "")
-            password = lines[1].replace("\n", "")
-            password = crypto.aes_decrypt(password)
-            # print(username)
-            # print(password)
-
-    if username_element:
-        username_element.send_keys(username)
-        time.sleep(1)
-        password_element.send_keys(password)
-        time.sleep(1)
-        login_button.click()
-    else:
-        raise Exception("browser is not load right, please retry")
-
-    log.info_out("页面加载中，请稍后...")
-    time.sleep(2)
-    return [local_browser, url]
+"""
+获取指定日期的工时
+http://redmine-pa.mxnavi.com/issues/13252/time_entries/autocomplete_for_time?q=2023-12-03
+"""
 
 
-def set_cookie(local_browser):
-    cookie = local_browser.get_cookies()[0].get("value")
-    headers["Cookie"] = "_redmine_session=" + cookie
+def find_work_time(response_with_code, workday):
+    # print(response_with_code.content)
+    # content = b'<!DOCTYPE html>\n<html lang="zh">\n<head>\n<meta charset="utf-8" />\n<meta http-equiv="X-UA-Compatible" content="IE=edge"/>\n<title>\xe7\xbe\x8e\xe8\xa1\x8c\xe9\xa1\xb9\xe7\x9b\xae\xe7\xae\xa1\xe7\x90\x86\xe5\xb9\xb3\xe5\x8f\xb0</title>\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta name="description" content="Redmine" />\n<meta name="keywords" content="issue,bug,tracker" />\n<meta name="csrf-param" content="authenticity_token" />\n<meta name="csrf-token" content="yKjqmUY3UqpFtppYBpTbBfiKCm3GjVz8Un2S7FSKkjrOAAlSzBWNw3eN/8fy2rg3H71Ffd1N7vLX08IABrQVKA==" />\n<link rel=\'shortcut icon\' href=\'/favicon.ico?1653026646\' />\n<link rel="stylesheet" media="all" href="/stylesheets/jquery/jquery-ui-1.12.1.css?1653026646" />\n<link rel="stylesheet" media="all" href="/stylesheets/tribute-5.1.3.css?1653026646" />\n<link rel="stylesheet" media="all" href="/themes/circle/stylesheets/application.css?1653026646" />\n<link rel="stylesheet" media="all" href="/stylesheets/responsive.css?1653026646" />\n\n<script src="/javascripts/jquery-3.5.1-ui-1.12.1-ujs-5.2.4.5.js?1653026646"></script>\n<script src="/javascripts/jquery-migrate-3.3.2.min.js?1653026646"></script>\n<script src="/javascripts/tribute-5.1.3.min.js?1653026646"></script>\n<script src="/javascripts/tablesort-5.2.1.min.js?1653026646"></script>\n<script src="/javascripts/tablesort-5.2.1.number.min.js?1653026646"></script>\n<script src="/javascripts/application.js?1653026646"></script>\n<script src="/javascripts/responsive.js?1653026646"></script>\n<script>\n//<![CDATA[\n$(window).on(\'load\', function(){ warnLeavingUnsaved(\'\xe8\x8b\xa5\xe7\xa6\xbb\xe5\xbc\x80\xe5\xbd\x93\xe5\x89\x8d\xe9\xa1\xb5\xe9\x9d\xa2\xef\xbc\x8c\xe5\x88\x99\xe8\xaf\xa5\xe9\xa1\xb5\xe9\x9d\xa2\xe5\x86\x85\xe6\x9c\xaa\xe4\xbf\x9d\xe5\xad\x98\xe7\x9a\x84\xe5\x86\x85\xe5\xae\xb9\xe5\xb0\x86\xe4\xb8\xa2\xe5\xa4\xb1\xe3\x80\x82\'); });\n//]]>\n</script>\n<script src="/themes/circle/javascripts/theme.js?1653026646"></script>\n<script>\n//<![CDATA[\nrm = window.rm || {};rm.AutoComplete = rm.AutoComplete || {};rm.AutoComplete.dataSources = \'{"issues":"/issues/auto_complete?q=","wiki_pages":"/wiki_pages/auto_complete?q="}\';\n//]]>\n</script>\n<link rel="stylesheet" media="screen" href="/plugin_assets/redmine_agile/stylesheets/redmine_agile.css?1701779526" /> <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_audit_series/stylesheets/audit_series.css?1701779526" /> <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_banner/stylesheets/banner.css?1701779526" /><script src="/plugin_assets/redmine_banner/javascripts/banner.js?1701779526"></script> <script src="/plugin_assets/redmine_checklists/javascripts/checklists.js?1701779526"></script><link rel="stylesheet" media="screen" href="/plugin_assets/redmine_checklists/stylesheets/checklists.css?1701779526" /> <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_issue_badge/stylesheets/style.css?1701779526" /> <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_issue_templates/stylesheets/issue_templates.css?1701779526" />  <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_people/stylesheets/redmine_people.css?1701779526" /> <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_crm/stylesheets/money.css?1701779524" /> <link rel="stylesheet" media="screen" href="/plugin_assets/redmine_searchable_selectbox/stylesheets/select2.min.css?1701779526" /><link rel="stylesheet" media="screen" href="/plugin_assets/redmine_searchable_selectbox/stylesheets/searchable_selectbox.css?1701779526" /><script src="/plugin_assets/redmine_searchable_selectbox/javascripts/select2.full.min.js?1701779526"></script><script src="/plugin_assets/redmine_searchable_selectbox/javascripts/searchable_selectbox.js?1701779526"></script> \n<!-- page specific tags -->\n\n<style type="text/css">\n  .from-table\n  {\n    overflow-y: visible;\n  }\n  .from-table,.data-table\n  {\n    clear:left;\n  }\n\n  .from-table table td,.data-table table td\n  {\n    background: #F8FCF8;\n    border:1px #c0c0c0 solid;\n    text-align: center;\n    padding:5px 3px;\n    word-break: break-all;\n\n  }\n\n  .from-table table th,.data-table table th{\n    font-size: 11px;\n  }\n\n  .from-table table th,.data-table table th\n  {\n    background: #cbd9d9;\n    border:1px #c0c0c0 solid;\n    text-align: center;\n    padding:5px 3px;\n    word-break: break-all;\n  }\n  .from-table table,.data-table table\n  {\n    border-collapse: collapse;\n    border:1px solid #c0c0c0\n  }\n  .test{\n    color: red;\n  }\n\n</style>\n<script>\n//<![CDATA[\nvar datepickerOptions={dateFormat: \'yy-mm-dd\', firstDay: 0, showOn: \'button\', buttonImageOnly: true, buttonImage: \'/images/calendar.png?1653026646\', showButtonPanel: true, showWeek: true, showOtherMonths: true, selectOtherMonths: true, changeMonth: true, changeYear: true, beforeShow: beforeShowDatePicker};\n//]]>\n</script><script src="/javascripts/i18n/datepicker-zh-CN.js?1653026646"></script>  <link rel="stylesheet" media="screen" href="/plugin_assets/redmineup_tags/stylesheets/redmine_tags.css?1701779526" />\n  <script src="/plugin_assets/redmineup_tags/javascripts/redmine_tags.js?1701779526"></script>\n  <script src="/plugin_assets/redmine_crm/javascripts/select2.js?1701779524"></script><link rel="stylesheet" media="screen" href="/plugin_assets/redmine_crm/stylesheets/select2.css?1701779524" /><script src="/plugin_assets/redmine_crm/javascripts/select2_helpers.js?1701779524"></script>\n</head>\n<body class="theme-Circle has-main-menu controller-cardinfos action-selectcardinfo avatars-off">\n\n<div id="wrapper">\n\n<div class="flyout-menu js-flyout-menu">\n\n        <div class="flyout-menu__search">\n            <form action="/search" accept-charset="UTF-8" name="form-e60284c4" method="get"><input name="utf8" type="hidden" value="&#x2713;" />\n            \n            <label class="search-magnifier search-magnifier--flyout" for="flyout-search">&#9906;</label>\n            <input type="text" name="q" id="flyout-search" class="small js-search-input" placeholder="\xe6\x90\x9c\xe7\xb4\xa2" />\n</form>        </div>\n\n        <div class="flyout-menu__avatar flyout-menu__avatar--no-avatar">\n            <a href="/people/1541">wangleic</a>\n        </div>\n\n        <h3>\xe9\xa1\xb9\xe7\x9b\xae</h3>\n        <span class="js-project-menu"></span>\n\n    <h3>\xe4\xb8\x80\xe8\x88\xac</h3>\n    <span class="js-general-menu"></span>\n\n    <span class="js-sidebar flyout-menu__sidebar"></span>\n\n    <h3>\xe7\xae\x80\xe4\xbb\x8b</h3>\n    <span class="js-profile-menu"></span>\n\n</div>\n\n<div id="wrapper2">\n<div id="wrapper3">\n<div id="top-menu">\n    <div id="account">\n        <ul><li><a class="my-account" href="/my/account">\xe6\x88\x91\xe7\x9a\x84\xe5\xb8\x90\xe5\x8f\xb7</a></li><li><a class="logout" rel="nofollow" data-method="post" href="/logout">\xe9\x80\x80\xe5\x87\xba</a></li></ul>    </div>\n    <div id="loggedas">\xe7\x99\xbb\xe5\xbd\x95\xe4\xb8\xba <a href="/people/1541">wangleic</a></div>\n    <ul><li><a class="home" href="/">\xe4\xb8\xbb\xe9\xa1\xb5</a></li><li><a class="my-page" href="/my/page">\xe6\x88\x91\xe7\x9a\x84\xe5\xb7\xa5\xe4\xbd\x9c\xe5\x8f\xb0</a></li><li><a class="projects" href="/projects">\xe9\xa1\xb9\xe7\x9b\xae</a></li><li><a class="help" href="https://www.redmine.org/guide">\xe5\xb8\xae\xe5\x8a\xa9</a></li></ul></div>\n\n<div id="header">\n\n    <a href="#" class="mobile-toggle-button js-flyout-menu-toggle-button"></a>\n\n    <div id="quick-search">\n        <form action="/search" accept-charset="UTF-8" name="form-e6943a68" method="get"><input name="utf8" type="hidden" value="&#x2713;" />\n        <input type="hidden" name="scope" />\n        \n        <label for=\'q\'>\n          <a accesskey="4" href="/search">\xe6\x90\x9c\xe7\xb4\xa2</a>:\n        </label>\n        <input type="text" name="q" id="q" size="20" class="small" accesskey="f" data-auto-complete="true" />\n</form>        <div id="project-jump" class="drdn"><span class="drdn-trigger">\xe9\x80\x89\xe6\x8b\xa9\xe4\xb8\x80\xe4\xb8\xaa\xe9\xa1\xb9\xe7\x9b\xae...</span><div class="drdn-content"><div class="quick-search"><input type="text" name="q" id="projects-quick-search" value="" class="autocomplete" data-automcomplete-url="/projects/autocomplete.js?jump=cardinfos" autocomplete="off" /></div><div class="drdn-items projects selection"><strong>\xe6\x9c\x80\xe8\xbf\x91\xe4\xbd\xbf\xe7\x94\xa8</strong><a title="CP100004.Honda_\xe6\xb5\xb7\xe7\xba\xb3\xe6\x96\xb0\xe6\x80\x9d_TSU3.0\xe7\xbb\xb4\xe6\x8a\xa4\xe9\xa1\xb9\xe7\x9b\xae+04.\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4(TSU)" href="/projects/cp100004-honda-tsu3-0-04-tsu?jump=cardinfos"><span style="padding-left:0px;">CP100004.Honda_\xe6\xb5\xb7\xe7\xba\xb3\xe6\x96\xb0\xe6\x80\x9d_TSU3.0\xe7\xbb\xb4\xe6\x8a\xa4\xe9\xa1\xb9\xe7\x9b\xae+04.\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4(TSU)</span></a><a title="CP100001.Honda_HMCT_CONNECT4.5_EV\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96Demo+04.HondaAPP\xe5\x8a\x9f\xe8\x83\xbd\xe5\xbc\x80\xe5\x8f\x91" href="/projects/cp100001-honda-04-hondaapp?jump=cardinfos"><span style="padding-left:0px;">CP100001.Honda_HMCT_CONNECT4.5_EV\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96Demo+04.HondaAPP\xe5\x8a\x9f\xe8\x83\xbd\xe5\xbc\x80\xe5\x8f\x91</span></a><a title="CP100003.Honda_\xe4\xb8\x89\xe8\x8f\xb1\xe7\x94\xb5\xe6\x9c\xba_TSU3.0-OTA-TSU_\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96_2023+(CR)01.OTA(202306)" href="/projects/cp100003-honda-ota-tsu-2023-cr-01-ota-202306?jump=cardinfos"><span style="padding-left:0px;">CP100003.Honda_\xe4\xb8\x89\xe8\x8f\xb1\xe7\x94\xb5\xe6\x9c\xba_TSU3.0-OTA-TSU_\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96_2023+(CR)01.OTA(202306)</span></a><strong>\xe6\x89\x80\xe6\x9c\x89\xe7\x9a\x84\xe9\xa1\xb9\xe7\x9b\xae</strong><a title="CP100003.Honda_\xe4\xb8\x89\xe8\x8f\xb1\xe7\x94\xb5\xe6\x9c\xba_TSU3.0-OTA-TSU_\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96_2023+(CR)01.OTA(202306)" href="/projects/cp100003-honda-ota-tsu-2023-cr-01-ota-202306?jump=cardinfos"><span style="padding-left:0px;">CP100003.Honda_\xe4\xb8\x89\xe8\x8f\xb1\xe7\x94\xb5\xe6\x9c\xba_TSU3.0-OTA-TSU_\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96_2023+(CR)01.OTA(202306)</span></a><a title="CP100003.Honda_\xe4\xb8\x89\xe8\x8f\xb1\xe7\x94\xb5\xe6\x9c\xba_TSU3.0-OTA-TSU_\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96_2023+(CR)02.OTA(202312)" href="/projects/cp100003-honda-2023-cr-02-ota-202312?jump=cardinfos"><span style="padding-left:0px;">CP100003.Honda_\xe4\xb8\x89\xe8\x8f\xb1\xe7\x94\xb5\xe6\x9c\xba_TSU3.0-OTA-TSU_\xe5\x8a\x9f\xe8\x83\xbd\xe8\xbf\x9b\xe5\x8c\x96_2023+(CR)02.OTA(202312)</span></a><a title="CP100004.Honda_\xe6\xb5\xb7\xe7\xba\xb3\xe6\x96\xb0\xe6\x80\x9d_TSU3.0\xe7\xbb\xb4\xe6\x8a\xa4\xe9\xa1\xb9\xe7\x9b\xae+04.\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4(TSU)" href="/projects/cp100004-honda-tsu3-0-04-tsu?jump=cardinfos"><span style="padding-left:0px;">CP100004.Honda_\xe6\xb5\xb7\xe7\xba\xb3\xe6\x96\xb0\xe6\x80\x9d_TSU3.0\xe7\xbb\xb4\xe6\x8a\xa4\xe9\xa1\xb9\xe7\x9b\xae+04.\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4(TSU)</span></a><a title="CP100005.Honda_CabinControl4.0_\xe9\x98\xbf\xe5\xb0\x94\xe6\xb4\xbe_\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4" href="/projects/cp100005-honda-cabincontrol4-0?jump=cardinfos"><span style="padding-left:0px;">CP100005.Honda_CabinControl4.0_\xe9\x98\xbf\xe5\xb0\x94\xe6\xb4\xbe_\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4</span></a><a title="CP100006.Honda_CabinControl4.0_\xe6\xb5\xb7\xe7\xba\xb3\xe6\x96\xb0\xe6\x80\x9d_\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4" href="/projects/cp100006-honda_cabincontrol4-0?jump=cardinfos"><span style="padding-left:0px;">CP100006.Honda_CabinControl4.0_\xe6\xb5\xb7\xe7\xba\xb3\xe6\x96\xb0\xe6\x80\x9d_\xe9\x87\x8f\xe4\xba\xa7\xe5\x90\x8e\xe7\xbb\xb4\xe6\x8a\xa4</span></a><a title="OT050001.\xe6\x8a\x80\xe6\x9c\xaf\xe4\xb8\xad\xe5\xbf\x83" href="/projects/ot050001?jump=cardinfos"><span style="padding-left:0px;">OT050001.\xe6\x8a\x80\xe6\x9c\xaf\xe4\xb8\xad\xe5\xbf\x83</span></a><a title="\xe7\xbc\xba\xe9\x99\xb7\xe9\xa2\x84\xe9\x98\xb2\xe5\x88\x86\xe6\x9e\x90\xe7\xb3\xbb\xe7\xbb\x9f" href="/projects/bugyyfx?jump=cardinfos"><span style="padding-left:0px;">\xe7\xbc\xba\xe9\x99\xb7\xe9\xa2\x84\xe9\x98\xb2\xe5\x88\x86\xe6\x9e\x90\xe7\xb3\xbb\xe7\xbb\x9f</span></a></div><div class="drdn-items all-projects selection"><a href="/projects?jump=cardinfos">\xe6\x89\x80\xe6\x9c\x89\xe7\x9a\x84\xe9\xa1\xb9\xe7\x9b\xae</a></div></div></div>\n    </div>\n\n    <h1>\xe7\xbe\x8e\xe8\xa1\x8c\xe9\xa1\xb9\xe7\x9b\xae\xe7\xae\xa1\xe7\x90\x86\xe5\xb9\xb3\xe5\x8f\xb0</h1>\n\n    <div id="main-menu" class="tabs">\n        <ul><li><a class="mx-cardinfo" href="/cardinfos">\xe6\x89\x93\xe5\x8d\xa1\xe8\xae\xb0\xe5\xbd\x95\xe7\x9b\xb8\xe5\x85\xb3</a></li><li><a class="workreport-audit" href="/workreports">\xe6\x97\xa5\xe6\x8a\xa5\xe7\x9b\xb8\xe5\x85\xb3</a></li></ul>\n        <div class="tabs-buttons" style="display:none;">\n            <button class="tab-left" onclick="moveTabLeft(this); return false;"></button>\n            <button class="tab-right" onclick="moveTabRight(this); return false;"></button>\n        </div>\n    </div>\n</div>\n\n<div id="main" class="nosidebar">\n    <div id="sidebar">\n        \n        \n    </div>\n\n    <div id="content">\n        \n        <fieldset>\n  <fieldset>\n  <legend><h3 style="margin-top: 10px;">\xe5\x9c\xa8\xe5\xb2\x97\xe5\xb7\xa5\xe6\x97\xb6\xe7\xbb\x9f\xe8\xae\xa1\xe8\xa7\x84\xe5\x88\x99</h3></legend>\n  <div class="from-table">\n    <pre class="test" style="margin-top: 10px;">  *1.\xe4\xb8\x8a\xe5\x8d\x88\xe4\xbb\x8e8\xef\xbc\x9a30\xe5\xbc\x80\xe5\xa7\x8b\xe8\xae\xa1\xe7\xae\x97\xe5\x9c\xa8\xe5\xb2\x97\xe5\xb7\xa5\xe6\x97\xb6\xef\xbc\x8c\xe4\xb8\xad\xe5\x8d\x88\xe5\x8d\x88\xe4\xbc\x91\xe6\x97\xb6\xe9\x97\xb4\xef\xbc\x8812\xef\xbc\x9a00\xef\xbd\x9e13\xef\xbc\x9a00\xef\xbc\x89\xe4\xb8\x8d\xe4\xbd\x9c\xe4\xb8\xba\xe5\x9c\xa8\xe5\xb2\x97\xe5\xb7\xa5\xe6\x97\xb6\xef\xbc\x8c\xe8\xae\xa1\xe7\xae\x97\xe6\x97\xb6\xe4\xbc\x9a\xe8\x87\xaa\xe5\x8a\xa8\xe6\x89\xa3\xe9\x99\xa4</pre>\n    <pre class="test" style="margin-top: 10px;">  *2.\xe5\x9c\xa8\xe5\xb2\x97\xe6\x9c\x9f\xe9\x97\xb4\xef\xbc\x8c\xe7\xa6\xbb\xe5\xbc\x80\xe5\x85\xac\xe5\x8f\xb8\xe7\x9a\x84\xe5\xb7\xa5\xe6\x97\xb6\xef\xbc\x8c\xe4\xb8\x8d\xe4\xbd\x9c\xe4\xb8\xba\xe5\x9c\xa8\xe5\xb2\x97\xe5\xb7\xa5\xe6\x97\xb6\xef\xbc\x8c\xe8\xae\xa1\xe7\xae\x97\xe6\x97\xb6\xe4\xbc\x9a\xe8\x87\xaa\xe5\x8a\xa8\xe6\x89\xa3\xe9\x99\xa4</pre>\n  </div>\n</fieldset>\n\n<!-- \xe6\x9f\xa5\xe8\xaf\xa2 -->\n<form id="cardinfo_list_form" action="/selectcardinfo" accept-charset="UTF-8" name="cardinfo_list_form-80e094c7" method="get"><input name="utf8" type="hidden" value="&#x2713;" />\n  <fieldset>\n    <legend><h3 style="margin-top: 10px;">\xe6\x89\x93\xe5\x8d\xa1\xe8\xae\xb0\xe5\xbd\x95\xe6\x9f\xa5\xe8\xaf\xa2</h3></legend>\n    <div class="from-table">\n      <table style="margin-top: 1px;width: 100%;">\n        <tr>\n          <td align="center">\n            \xe6\x9f\xa5\xe8\xaf\xa2\xe6\x97\xb6\xe9\x97\xb4 :\n            <input type="hidden" name="code" value="M000761" />\n            <input value="2023-12-01" size="15" type="date" name="event_time[]" id="event_time_" />\n            <script>\n//<![CDATA[\n$(function() { $(\'#event_time\').addClass(\'date\').datepickerFallback(datepickerOptions); });\n//]]>\n</script>\n            <input type="submit" name="commit" value="\xe6\x9f\xa5\xe8\xaf\xa2" data-disable-with="\xe6\x9f\xa5\xe8\xaf\xa2" />\n          </td>\n        </tr>\n      </table>\n    </div>\n  </fieldset>\n</form>\n<fieldset>\n  <legend><h3 style="margin-top: 10px;">\xe6\x89\x93\xe5\x8d\xa1\xe8\xae\xb0\xe5\xbd\x95\xe5\x88\x97\xe8\xa1\xa8\xe8\xaf\xa6\xe7\xbb\x86,\xe6\x80\xbb\xe5\xb7\xa5\xe6\x97\xb6\xef\xbc\x9a  8.41</h3> </legend>\n  <div class="data-table" >\n    <table  id="workreport-table"  style="margin-top: 1px;width: 100%;" >\n      <thead>\n      <tr>\n        <th width="20%" align ="center"> \xe5\x91\x98\xe5\xb7\xa5\xe5\xa7\x93\xe5\x90\x8d</th>\n        <th width="60%" align ="center"> \xe6\x89\x93\xe5\x8d\xa1\xe8\xae\xb0\xe5\xbd\x95</th>\n        <th width="20%" align ="center"> \xe8\xbf\x9b\xe5\x87\xba</th>\n      </tr>\n      </thead>\n      <tbody>\n          <tr>\n            <td align="center"  valign="middle">\n              \xe7\x8e\x8b\xe7\xa3\x8aC\n            </td>\n            <td align="center"  valign="middle">\n              2023-12-01 08:57:27\n            </td>\n             <td align="center"  valign="middle">\n               \xe8\xbf\x9b\xe9\x97\xa8\n            </td>\n          </tr>\n          <tr>\n            <td align="center"  valign="middle">\n              \xe7\x8e\x8b\xe7\xa3\x8aC\n            </td>\n            <td align="center"  valign="middle">\n              2023-12-01 12:21:39\n            </td>\n             <td align="center"  valign="middle">\n               \xe5\x87\xba\xe9\x97\xa8\n            </td>\n          </tr>\n          <tr>\n            <td align="center"  valign="middle">\n              \xe7\x8e\x8b\xe7\xa3\x8aC\n            </td>\n            <td align="center"  valign="middle">\n              2023-12-01 14:15:11\n            </td>\n             <td align="center"  valign="middle">\n               \xe8\xbf\x9b\xe9\x97\xa8\n            </td>\n          </tr>\n          <tr>\n            <td align="center"  valign="middle">\n              \xe7\x8e\x8b\xe7\xa3\x8aC\n            </td>\n            <td align="center"  valign="middle">\n              2023-12-01 15:32:56\n            </td>\n             <td align="center"  valign="middle">\n               \xe5\x87\xba\xe9\x97\xa8\n            </td>\n          </tr>\n          <tr>\n            <td align="center"  valign="middle">\n              \xe7\x8e\x8b\xe7\xa3\x8aC\n            </td>\n            <td align="center"  valign="middle">\n              2023-12-01 15:36:32\n            </td>\n             <td align="center"  valign="middle">\n               \xe8\xbf\x9b\xe9\x97\xa8\n            </td>\n          </tr>\n          <tr>\n            <td align="center"  valign="middle">\n              \xe7\x8e\x8b\xe7\xa3\x8aC\n            </td>\n            <td align="center"  valign="middle">\n              2023-12-01 19:41:27\n            </td>\n             <td align="center"  valign="middle">\n               \xe5\x87\xba\xe9\x97\xa8\n            </td>\n          </tr>\n          <tr>\n            <td colspan="2"  align ="right">\n              \xe5\x9c\xa8\xe5\xb2\x97\xe6\x97\xb6\xe9\x97\xb4\xef\xbc\x9a(H\xe5\xb0\x8f\xe6\x97\xb6\xef\xbc\x9aM\xe5\x88\x86\xe9\x92\x9f)\n            </td>\n            <td  colspan="1" align="left"  valign="middle">\n              8.41\n            </td>\n          </tr>\n      </tbody>\n    </table>\n  </div>\n</fieldset>\n\n</fieldset>\n        \n        <div style="clear:both;"></div>\n    </div>\n</div>\n<div id="footer">\n    Powered by <a href="https://www.redmine.org/">Redmine</a> &copy; 2006-2021 Jean-Philippe Lang\n</div>\n</div>\n\n<div id="ajax-indicator" style="display:none;"><span>\xe8\xbd\xbd\xe5\x85\xa5\xe4\xb8\xad...</span></div>\n<div id="ajax-modal" style="display:none;"></div>\n\n</div>\n</div>\n<div class="banner_area global_banner">\n<div class="banner banner_info" id="banner_content">\n  <ol>\n\t<li>\xe6\x97\xa5\xe6\x8a\xa5\xe5\xbc\xba\xe5\x88\xb6\xe5\xae\xa1\xe6\xa0\xb8\xe7\x9a\x84\xe6\x96\xb9\xe5\xbc\x8f\xe8\xbf\x9b\xe8\xa1\x8c\xe4\xba\x86\xe6\x94\xb9\xe5\x96\x84\xef\xbc\x8c\xe5\x8f\xaf\xe4\xbb\xa5\xe6\x89\xb9\xe9\x87\x8f\xe5\xa4\x84\xe7\x90\x86\xe4\xba\x86\xe3\x80\x82\xe5\xa4\xa7\xe5\xae\xb6\xe5\x9c\xa8\xe5\xbc\xba\xe5\xae\xa1\xe6\x97\xb6\xe5\x92\x8c\xe5\xae\xa1\xe6\xa0\xb8\xe4\xb8\x8d\xe9\x80\x9a\xe8\xbf\x87\xe7\x9a\x84\xe6\x97\xb6\xe5\x80\x99\xef\xbc\x8c\xe8\xaf\xb7\xe6\x8a\x8a\xe5\x8e\x9f\xe5\x9b\xa0\xe5\xa1\xab\xe5\x86\x99\xe4\xb8\x80\xe4\xb8\x8b\xe3\x80\x82</li>\n\t\t<li>\xe8\x81\x8c\xe8\x83\xbd\xe7\xbb\x84\xe9\x95\xbf\xe5\x8f\xaf\xe4\xbb\xa5\xe5\xbe\x88\xe6\x96\xb9\xe4\xbe\xbf\xe5\x9c\xb0\xe6\x9f\xa5\xe7\x9c\x8b\xe7\xbb\x84\xe5\x91\x98\xe7\x9a\x84\xe6\x97\xa5\xe6\x8a\xa5\xe4\xba\x86\xe3\x80\x82</li>\n\t\t<li>\xe9\xa3\x9e\xe4\xb9\xa6\xe6\x89\x93\xe9\x80\x9a\xef\xbc\x9a\xe9\xa1\xb9\xe7\x9b\xae\xe5\xbc\x80\xe5\x90\xaf\xe9\xa3\x9e\xe4\xb9\xa6\xe6\xb6\x88\xe6\x81\xaf\xe9\x80\x9a\xe7\x9f\xa5\xe5\x8a\x9f\xe8\x83\xbd\xe5\x90\x8e\xef\xbc\x8c\xe9\x97\xae\xe9\xa2\x98\xe7\x9a\x84\xe5\x88\x9b\xe5\xbb\xba\xe5\x92\x8c\xe6\x9b\xb4\xe6\x96\xb0\xe4\xbc\x9a\xe9\x80\x9a\xe8\xbf\x87\xe9\xa3\x9e\xe4\xb9\xa6\xe6\x9c\xba\xe5\x99\xa8\xe4\xba\xba\xe5\xbf\xab\xe9\x80\x9f\xe9\x80\x9a\xe7\x9f\xa5\xe7\x9b\xb8\xe5\x85\xb3\xe5\xaf\xb9\xe5\xba\x94\xe8\x80\x85</li>\n\t</ol>\n</div>\n  <div class="banner_edit">\n    \n<a class="icon banner-icon-off" title="\xe5\x85\xb3\xe9\x97\xadBanner\xe6\xa8\xaa\xe5\xb9\x85\xe4\xbf\xa1\xe6\x81\xaf\xe3\x80\x82" data-remote="true" href="/banner/off?moderate=yes">\xe5\x85\xb3\xe9\x97\xad</a>\n  </div>\n\n</div>\n\n<script type="text/javascript">\n  $(document).ready(function () {\n    displayTopBanner();\n  });\n\n  $(window).resize(function () {\n    console.log("resize");\n    displayTopBanner();\n  });\n</script>\n\n \n<script>\n//<![CDATA[\nsetSelect2Filter(\'people\', {"format_state":"formatStateWithAvatar","min_input_length":1,"url":"/people/new/autocomplete_for_manager"});\n//]]>\n</script>\n\n  <script>\n//<![CDATA[\nsetSelect2Filter(\'issue_tags\', {"url":"http://redmine-pa.mxnavi.com/auto_completes/redmine_tags"});\n//]]>\n</script>\n\n</body>\n</html>\n'
 
-
-def find_work_time(response_with_code):
+    # resp_html = etree.HTML(content)
     resp_html = etree.HTML(response_with_code.content)
     # print(resp_html)
     resp_list = resp_html.xpath("//table[@id='workreport-table']/tbody")
     # print(resp_list)
     # print("in")
+    for tr in resp_list[0].xpath("//tr")[2::]:
+        if len(tr) == 2:
+            continue
+        clock_time = str(tr.xpath("./td/text()")[1]).replace("\n", "").strip().split(" ")[1]
+        log.d("clock_time:", clock_time)
+        clock_in[workday] = clock_time
+        break
     result = str(resp_list[0].xpath("//tr")[-1].xpath("./td/text()")[-1]).replace("\n", "").replace(" ", "")
     # print(result)
     return result
@@ -98,30 +51,33 @@ def find_work_time(response_with_code):
 
 def get_time_at_company(input_month):
     log.info_out("统计在岗时间")
-    response = requests.get("https://redmine-pa.mxnavi.com/cardinfos", headers=headers)
+    response = requests.get("https://redmine-pa.mxnavi.com/cardinfos", headers=m_browser.headers)
     soup = BeautifulSoup(response.content, 'html.parser')
     hidden_code = soup.find(name="input", attrs={"name": "code"})["value"]
     # print("hidden_code", hidden_code)
     # print(soup)
     work_days = weekdays.get_days_until_today_with_month(input_month)
+    log.d("work_days", work_days)
     work_time_by_days = {}
     for workday in work_days:
         url = f"https://redmine-pa.mxnavi.com/selectcardinfo?utf8=%E2%9C%93&code={hidden_code}" \
               f"&event_time%5B%5D={workday}&commit=%E6%9F%A5%E8%AF%A2"
-        # print(url)
-        response_with_code = requests.get(url, headers=headers)
+        log.d("usl is ", url)
+        response_with_code = requests.get(url, headers=m_browser.headers)
 
-        worktime = find_work_time(response_with_code)
+        worktime = find_work_time(response_with_code, workday)
         work_time_by_days[workday] = worktime
         time.sleep(0.2)
-    log.info(work_time_by_days)
+    calculate_leave_time()
+    log.info(f"delay : {delay_map}")
+    log.d("work_time_by_days", work_time_by_days)
     return work_time_by_days
 
 
 def get_work_time(url):
     # print(browser.get_cookies())
     log.info_out("统计已登记日报")
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=m_browser.headers)
     soup = BeautifulSoup(response.content, 'html.parser')
 
     tables = soup.find_all('tr')
@@ -161,7 +117,8 @@ def total_time_to_file(table_dic, input_month):
     log.info_out("统计时间制成表格")
     # print(table_dic)
     print_lst = [
-        str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长" + "\t" + "漏填日报" + "\n")]
+        str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长"
+            + "\t" + "漏填日报" + "\t" + "打卡时间" + "\t" + "迟到请假" + "\n")]
     fill_value = table_dic.get("values")
     workday = 0
     external_work = float(0)
@@ -170,7 +127,9 @@ def total_time_to_file(table_dic, input_month):
     for item in fill_value:
         log.d("work_item: ", item)
 
+        # 当日多条记录
         if len(item) != 13:
+            # 当日多条记录
             if len(item) == 10 and item[4] == '' and item[7] == '':
                 if item[1] == "事假" or item[1] == "病假":
                     holiday_time += float(item[5])
@@ -192,11 +151,14 @@ def total_time_to_file(table_dic, input_month):
                                   + "\t" + str("%.2f" % (current_day_total - 8)) \
                                   + "\t" + last_item[5] \
                                   + "\t" + str(
-                    "%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total)))
+                    "%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total))) \
+                                  + "\t" + last_item[7] \
+                                  + "\t" + last_item[8]
                 print_lst[len(print_lst) - 1] = new_item_string + "\n"
                 log.d("latest_item", new_item_string)
                 # print("item", item)
             continue
+        # 当日多条记录
         if item[5] == '':
             workday += 1
             if item[2] == "事假" or item[2] == "病假":
@@ -209,10 +171,13 @@ def total_time_to_file(table_dic, input_month):
             total_work = float(item[7]) + float(item[6])
             standard_time = 0 if 8 - total_work < 0 else 8 - float(total_work)
 
-            print_lst.append(str(item[0] + "\t" + item[2] + "\t" + item[6] + "\t" + item[7] + "\t"
-                                 + str("%.2f" % current_external_work_time) + "\t"
-                                 + item[8] + "\t"
-                                 + str("%.2f" % standard_time) + "\n"))
+            print_lst.append(str(item[0] + "\t" + item[2] + "\t" + item[6] + "\t" + item[7]
+                                 + "\t" + str("%.2f" % current_external_work_time)
+                                 + "\t" + item[8]
+                                 + "\t" + str("%.2f" % standard_time)
+                                 + "\t" + clock_in[item[0]]
+                                 + "\t" + str(delay_map[item[0]])
+                                 + "\n"))
         else:
             this_date = item[0].split("-")
             year = int(this_date[0])
@@ -220,12 +185,17 @@ def total_time_to_file(table_dic, input_month):
             day = int(this_date[2])
             work_date = datetime.date(year, month, day)
             log.info(work_date)
+            # 周末或假期上班
             if not weekdays.is_workday(work_date):
                 external_work += float(item[7])
                 print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]
-                                     + "\t" + item[7] + "\t" + str("%.2f" % (float(item[8]) - float(item[7]))) + "\n"))
+                                     + "\t" + item[7] + "\t" + str("%.2f" % (float(item[8]) - float(item[7])))
+                                     + "\t" + clock_in[item[0]]
+                                     + "\t" + str(delay_map[item[0]])
+                                     + "\n"))
                 work_at_weekend.append(item[0])
                 log.info("date in holiday")
+            # 工作日
             else:
                 workday += 1
                 external_work += float("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8))
@@ -233,7 +203,10 @@ def total_time_to_file(table_dic, input_month):
                     str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7]
                         + "\t" + str("%.2f" % (0 if float(item[7]) - 8 < 0 else float(item[7]) - 8)))
                     + "\t" + item[8]
-                    + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7]))) + "\n")
+                    + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7])))
+                    + "\t" + clock_in[item[0]]
+                    + "\t" + str(delay_map[item[0]])
+                    + "\n")
                 log.info("date in workday")
 
     log.d("workday", workday)
@@ -245,45 +218,17 @@ def total_time_to_file(table_dic, input_month):
     log.d("holiday_hour: ", holiday_hour)
     log.info(print_lst)
     expect_worktime = len(weekdays.get_workdays_by_month(input_month)) * 8
-    calculate_header = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
+    delay_time_total = 0
+    for value in delay_map.values():
+        delay_time_total += value
+    calculate_header = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时", "预计请假工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)), "",
                        str("%.2f" % external_work), holiday_time, holiday_hour,
                        str("%.2f" % (0 if holiday_hour - holiday_time < 0 else holiday_hour - holiday_time)),
-                       "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour))]
+                       "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour)),
+                       str(delay_time_total)]
 
     return [print_lst, calculate_header, calculate_value, work_at_weekend]
-
-
-def write_to_excel(detail_datas, analysis_datas):
-    log.info_out("写入文件")
-    rows_num = len(detail_datas["日期"]) + 3
-    df0 = pandas.DataFrame(detail_datas)
-    df1 = pandas.DataFrame(analysis_datas)
-    # print(df0)
-
-    df0.convert_dtypes()
-    df1.convert_dtypes()
-    with pandas.ExcelWriter("work_report.xlsx", engine='xlsxwriter') as writer:
-        df0.to_excel(writer, sheet_name="work_report", index=False, startrow=0)
-        df1.to_excel(writer, sheet_name="work_report", index=False, startrow=rows_num)
-
-
-def write_to_file(calculate_header, calculate_value):
-    with open("work_report.xlsx", "w+", encoding="utf8") as wr:
-        # wr.write(print_lst.replace(",", "\t"))
-        # for string in print_lst:
-        #     wr.write(string)
-
-        wr.write("\n")
-        wr.write("\n")
-        wr.write("\n")
-        for header in calculate_header:
-            wr.write(header + "\t")
-        wr.write("\n")
-
-        for c_value in calculate_value:
-            wr.write(str(c_value) + "\t")
-        wr.write("\n")
 
 
 def calculate_loss_time(loss_work_time):
@@ -390,49 +335,29 @@ def use_js_change_value(_browser, element_id, value):
     _browser.execute_script(js)
 
 
-def get_current_default_browser():
-    log.info_out("浏览器加载中，请稍后...")
-
-    this_browser = None
-    if get_current_system() == "Windows" and judge.init_edge():
-        # 如果这里出现SSL异常，可能是应为开了代理导致SSL验证不过
-        this_browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
-        log.info_out("使用Edge")
-
-    if this_browser is None:
-        this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
-        log.info_out("使用Chrome")
-
-    if this_browser is None:
-        log.info_out("没有找到合适的浏览器")
-        return None
-
-    return this_browser
-
-
-def get_current_system():
-    return platform.system()
-
-
 def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
     # print(work_list)
     tb = ptb.PrettyTable()
+    # 表头
     tb.field_names = work_list[0].replace("\n", "").split("\t")
+    # 表数据
     new_list = work_list[1::]
     rows = []
     external_work = 0
     for item in new_list:
         field_item = item.replace("\n", "").split("\t")
         log.info(field_item)
-        lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6]]
+        lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6], field_item[7], field_item[8]]
         log.info(lst)
         actual_time = field_item[5] if field_item[5] > field_item[3] else field_item[3]
         if field_item[2] != "":
+            # 算假期
             if "=" in field_item[2]:
                 _external = eval(field_item[2].split("= ")[1]) + eval(actual_time) - 8
             else:
                 _external = eval(field_item[2]) + eval(actual_time) - 8
         else:
+            # 周末
             if field_item[0] in work_at_weekend:
                 _external = eval(actual_time)
             else:
@@ -461,7 +386,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
             value = worktime_by_days_dict[key]
             if value == '0.0':
                 continue
-            loss_list = [key, "", "", "", "", value, value]
+            loss_list = [key, "", "", "", "", value, value, clock_in.get(key), str(delay_map.get(key))]
             loss_work_time_dict[key] = [value]
 
             if weekdays.is_workday(key):
@@ -483,7 +408,9 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
         tb.field_names[3]: list(eval(item[3]) if item[3] != "" else 0 for item in rows),
         tb.field_names[4]: list(eval(item[4]) if item[4] != "" else 0 for item in rows),
         tb.field_names[5]: list(eval(item[5]) if item[5] != "" else 0 for item in rows),
-        tb.field_names[6]: list(eval(item[6]) if item[6] != "" else 0 for item in rows)
+        tb.field_names[6]: list(eval(item[6]) if item[6] != "" else 0 for item in rows),
+        tb.field_names[7]: list(clock_in_time for clock_in_time in clock_in.values()),
+        tb.field_names[8]: list(delay_time for delay_time in delay_map.values())
     }
 
     return external_work, datas
@@ -491,7 +418,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
 
 def show_work_report_analysis(work_total):
     tb_total = ptb.PrettyTable()
-    tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时"]
+    tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时", "预计迟到请假"]
     tb_total.add_row(work_total)
     log.info_out(tb_total)
     datas = {
@@ -501,7 +428,8 @@ def show_work_report_analysis(work_total):
         tb_total.field_names[3]: [work_total[3]],
         tb_total.field_names[4]: [work_total[4]],
         tb_total.field_names[5]: [work_total[5]],
-        tb_total.field_names[6]: [work_total[6]]
+        tb_total.field_names[6]: [work_total[6]],
+        tb_total.field_names[7]: [work_total[7]]
     }
     return datas
 
@@ -524,6 +452,37 @@ def parse_args():
     return args.log
 
 
+def calculate_leave_time():
+    delay_number = 2
+    time2 = "09:00:00"
+    standard_time = datetime.datetime.strptime(time2, "%H:%M:%S")
+    for key, value in clock_in.items():
+        value_to_time = datetime.datetime.strptime(value, "%H:%M:%S")
+        knock_off_time = value_to_time + datetime.timedelta(hours=8)
+        knock_off_map[key] = knock_off_time
+        if value_to_time > standard_time:
+            diff = value_to_time - standard_time
+            log.info("相差{}分".format(diff.seconds // 60))
+            delay_minutes = diff.seconds / 60
+            if 0 < diff.seconds < 60:
+                continue
+            elif 1 < delay_minutes <= 30 and delay_number != 0:
+                delay_number -= 1
+                delay_map[key] = 0
+            elif 1 < delay_minutes <= 60:
+                delay_map[key] = 1
+            else:
+                quotient, remainder = divmod(delay_minutes - 60, 30)
+                if remainder != 0 and quotient != 0:
+                    delay_map[key] = quotient * 0.5 + 0.5 + 1
+                elif remainder == 0 and quotient != 0:
+                    delay_map[key] = quotient + 0.5 + 1
+                else:
+                    delay_map[key] = 0.5 + 1
+        else:
+            delay_map[key] = 0
+
+
 # ios 运行可能要在mac上运行pyinstaler
 # windows
 #  ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py
@@ -531,19 +490,22 @@ def parse_args():
 #  --add-binary "chromedriver_115.exe;."
 if __name__ == '__main__':
     loss_work_time_dict = {}
-    log = Log(parse_args())
+    # log = Log(parse_args())
+    log = Log(1)
+    clock_in = {}
+    delay_map = {}
+    knock_off_map = {}
 
     try:
         year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
-        browser = get_current_default_browser()
-        if browser is None:
-            log.info_out("结束运行")
+        login_result = m_browser.auto_login(log, year_month)
+        if login_result is None:
+            log.info_out("浏览器加载失败，结束运行")
             sys.exit()
 
-        log.info_out("加载完成！")
-        browser, origin_url = auto_login(browser)
-        set_cookie(browser)
-        log.info_out("登录成功")
+        browser, origin_url = login_result[0], login_result[1]
+        log.info_out("页面加载中，请稍后...")
+
         # 好像只能这样了，请假的
         work_time_by_days_dict = get_time_at_company(year_month)
         log.info_out("在岗时间统计完成")
@@ -593,10 +555,11 @@ if __name__ == '__main__':
                     _datas_analysis = show_work_report_analysis(work_time_value)
                     # write_to_file(table_csv_string, calculate_header, calculate_value)
                     # write_to_file(work_time_info, work_time_header, work_time_value)
-        write_to_excel(_datas, _datas_analysis)
+        m_write.write_to_excel(log, _datas, _datas_analysis)
         log.info_out("完成")
         browser.quit()
     except Exception as e:
+        print("出现异常：", e)
         log.info(e)
         log_file = open("error.log", "a+")
         now = datetime.datetime.now()
@@ -610,3 +573,9 @@ if __name__ == '__main__':
             sys.exit()
 
 # test_url()
+# log = Log(parse_args())
+# clock_in = {"2023-12-01": "2023-12-01 08:57:27", "2023-12-02": "2023-12-02 09:07:27"}
+# work_days = weekdays.get_days_until_today_with_month(12)
+# for workday in work_days:
+#     find_work_time(1, workday)
+# calculate_leave_time()
