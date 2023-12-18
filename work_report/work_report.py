@@ -176,7 +176,7 @@ def total_time_to_file(table_dic, input_month):
                                  + "\t" + item[8]
                                  + "\t" + str("%.2f" % standard_time)
                                  + "\t" + clock_in[item[0]]
-                                 + "\t" + str(delay_map[item[0]])
+                                 + "\t" + str("" if delay_map.get(item[0], 0) - float(item[6]) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                                  + "\n"))
         else:
             this_date = item[0].split("-")
@@ -191,7 +191,7 @@ def total_time_to_file(table_dic, input_month):
                 print_lst.append(str(item[0] + "\t" + "" + "\t" + "" + "\t" + item[7] + "\t" + item[7]
                                      + "\t" + item[7] + "\t" + str("%.2f" % (float(item[8]) - float(item[7])))
                                      + "\t" + clock_in[item[0]]
-                                     + "\t" + str(delay_map[item[0]])
+                                     + "\t" + str("" if delay_map.get(item[0], 0) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                                      + "\n"))
                 work_at_weekend.append(item[0])
                 log.info("date in holiday")
@@ -205,7 +205,7 @@ def total_time_to_file(table_dic, input_month):
                     + "\t" + item[8]
                     + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7])))
                     + "\t" + clock_in[item[0]]
-                    + "\t" + str(delay_map[item[0]])
+                    + "\t" + str("" if delay_map.get(item[0], 0) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                     + "\n")
                 log.info("date in workday")
 
@@ -386,7 +386,8 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
             value = worktime_by_days_dict[key]
             if value == '0.0':
                 continue
-            loss_list = [key, "", "", "", "", value, value, clock_in.get(key), str(delay_map.get(key))]
+            loss_list = [key, "", "", "", "", value, value, clock_in.get(key),
+                         str("" if delay_map.get(key, 0) == 0 else f"迟到了,要请假{delay_map.get(key, 0)}小时")]
             loss_work_time_dict[key] = [value]
 
             if weekdays.is_workday(key):
