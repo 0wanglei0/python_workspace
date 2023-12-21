@@ -145,18 +145,20 @@ class Server:
                     print("server send")
                     if len(read_data) < 512:
                         print("Download completed")
-                        exit()
+                        break
                     recv_ack_pack, _ = download_socket.recvfrom(1024)
                     print("server send ", recv_ack_pack)
 
                     ack_code, ack_num = struct.unpack("!HH", recv_ack_pack[0:4])
                     if ack_code != 4 or ack_num != send_num:
                         print('received data error')
+                        break
                     send_num += 1
                 except Exception as e:
                     print(e)
                     send_data = struct.pack("!HH5s", 5, 5, 'error'.encode("utf-8"))
                     download_socket.sendto(send_data, client)
+                    break
 
 
 if __name__ == "__main__":
