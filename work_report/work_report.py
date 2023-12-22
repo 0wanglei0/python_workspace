@@ -135,7 +135,7 @@ def total_time_to_file(table_dic, input_month):
     # print(table_dic)
     print_lst = [
         str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长"
-            + "\t" + "漏填日报" + "\t" + "上班打卡" + "\t" + "下班打卡" + "\t" + "迟到请假" + "\n")]
+            + "\t" + "漏填日报" + "\t" + "上班打卡" + "\t" + "下班打卡" + "\t" + "迟到请假" + "\t" + "加班串休" + "\n")]
     fill_value = table_dic.get("values")
     workday = 0
     external_work = float(0)
@@ -171,7 +171,8 @@ def total_time_to_file(table_dic, input_month):
                     "%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total))) \
                                   + "\t" + last_item[7] \
                                   + "\t" + last_item[8] \
-                                  + "\t" + last_item[9]
+                                  + "\t" + last_item[9] \
+                                  + "\t" + last_item[10]
                 print_lst[len(print_lst) - 1] = new_item_string + "\n"
                 if delay_map.get(item[0], 0) - float(item[5]) <= 0:
                     delay_map[item[0]] = 0
@@ -199,6 +200,7 @@ def total_time_to_file(table_dic, input_month):
                                  + "\t" + clock_go_home[item[0]]
                                  + "\t" + str("" if delay_map.get(item[0], 0) - float(
                 item[6]) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                                 + "\t" + vacations_map[item[0]]
                                  + "\n"))
             if delay_map.get(item[0], 0) - float(item[6]) <= 0:
                 delay_map[item[0]] = 0
@@ -218,6 +220,7 @@ def total_time_to_file(table_dic, input_month):
                                      + "\t" + clock_go_home[item[0]]
                                      + "\t" + str(
                     "" if delay_map.get(item[0], 0) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                                     + "\t" + vacations_map[item[0]]
                                      + "\n"))
                 work_at_weekend.append(item[0])
                 log.info("date in holiday")
@@ -234,6 +237,7 @@ def total_time_to_file(table_dic, input_month):
                     + "\t" + clock_go_home[item[0]]
                     + "\t" + str(
                         "" if delay_map.get(item[0], 0) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                    + "\t" + vacations_map[item[0]]
                     + "\n")
                 log.info("date in workday")
 
@@ -380,7 +384,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
         field_item = item.replace("\n", "").split("\t")
         log.info(field_item)
         lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6],
-               field_item[7], field_item[8], field_item[9]]
+               field_item[7], field_item[8], field_item[9], field_item[10]]
         log.info(lst)
         actual_time = field_item[5] if field_item[5] > field_item[3] else field_item[3]
         if field_item[2] != "":
@@ -420,7 +424,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
             if value == '0.0':
                 continue
             loss_list = [key, "", "", "", "", value, value, clock_in.get(key), clock_go_home.get(key),
-                         str("" if delay_map.get(key, 0) == 0 else f"迟到了,要请假{delay_map.get(key, 0)}小时")]
+                         str("" if delay_map.get(key, 0) == 0 else f"迟到了,要请假{delay_map.get(key, 0)}小时"), vacations_map.get(key)]
             loss_work_time_dict[key] = [value]
 
             if weekdays.is_workday(key):
@@ -445,7 +449,8 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
         tb.field_names[6]: list(eval(item[6]) if item[6] != "" else 0 for item in rows),
         tb.field_names[7]: list(clock_in_time for clock_in_time in clock_in.values()),
         tb.field_names[8]: list(go_home for go_home in clock_go_home.values()),
-        tb.field_names[9]: list(delay_time for delay_time in delay_map.values())
+        tb.field_names[9]: list(delay_time for delay_time in delay_map.values()),
+        tb.field_names[10]: list(vacation for vacation in vacations_map.values())
     }
 
     return external_work, datas
