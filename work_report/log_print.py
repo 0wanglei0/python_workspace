@@ -13,6 +13,10 @@ class Log:
 
         self.save_to_log_file(f"{tag} = {value}")
 
+    @staticmethod
+    def log_print(*args, sep=' ', end='\n', file=None, flush=False):
+        print(*args, sep, end, file)
+
     def info(self, message):
         if self.is_print_log == 0:
             return

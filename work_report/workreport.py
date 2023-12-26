@@ -1,4 +1,5 @@
 import datetime as dt
+import getpass
 import sys
 import time
 import warnings
@@ -160,10 +161,29 @@ def run():
     append_hours = np.sum(total)
     print("本月加班总时长{0}".format(round(append_hours, 2)))
 
+def show_password(prompt):
+    password = ""
+    while True:
+        char = getpass.getpass(prompt=prompt, stream=None)
+        if char == "\r":
+            break
+        password += char
+        prompt = "*" * len(password) + "\r"
+    return password
+
 
 if __name__ == '__main__':
-    base_url = 'http://npm.taobao.org/mirrors/chromedriver/'
-    # 匹配前3位版本号的正则表达式
-    version_re = re.compile(r'^[1-9]\d*\.\d*.\d*')
-    checkChromeDriverUpdate()
-    run()
+    # base_url = 'http://npm.taobao.org/mirrors/chromedriver/'
+    # # 匹配前3位版本号的正则表达式
+    # version_re = re.compile(r'^[1-9]\d*\.\d*.\d*')
+    # checkChromeDriverUpdate()
+    # run()
+    password = ""
+    while True:
+        char = getpass.getpass(prompt="请输入密码：", stream=None)
+        if char == "\r":
+            break
+        password += char
+        sys.stdout.write("*")
+    print("\n您输入的密码是：", password)
+

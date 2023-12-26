@@ -6,9 +6,34 @@
 # }
 
 
-string = '1.0 + 1.0 = 2.0'
-if "=" in string:
-    print(string.split("= ")[1])
+# string = '1.0 + 1.0 = 2.0'
+# if "=" in string:
+#     print(string.split("= ")[1])
+#
+#
+# a, b = []
+#
+# import msvcrt
+#
+# def hide_input_password():
+#     password = ''
+#     print('请输入密码：', end='', flush=True)
+#     while True:
+#         ch = msvcrt.getch().decode()
+#         if ch == '\r':
+#             break
+#         elif ch == '\b':
+#             if len(password) > 0:
+#                 password = password[:-1]
+#                 print('\b \b', end='', flush=True)
+#         else:
+#             password += ch
+#         print('*', end='', flush=True)
+#     return password
+#
+# password = hide_input_password()
 
+import stdiomask
 
-a, b = []
+password = stdiomask.getpass(prompt='PW: ', mask='*')
+print(password)

@@ -1,6 +1,6 @@
 import module_weekdays as weekdays
-import getpass
 import time
+import stdiomask
 from selenium.webdriver.common.by import By
 import module_crypto as crypto
 from selenium import webdriver
@@ -50,7 +50,6 @@ def auto_login(log, year_month):
         return None
 
     log.info_out("浏览器启动完成！")
-    log.info_out("正在自动登录,请稍后...")
     days = weekdays.get_start_end_days_string_by_month(year_month)
     log.d("days", days)
     url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
@@ -67,12 +66,13 @@ def auto_login(log, year_month):
         user_info.seek(0)
         lines = user_info.readlines()
         if not lines:
-            username = input("用户名:")
-            password = getpass.getpass("password:")
+            username = input("请输入用户名:")
+            password = stdiomask.getpass(prompt='password: ', mask='*')
             encrypt_pass = crypto.aes_encrypt(password)
             log.save_to_file(username, user_info)
             log.save_to_file(encrypt_pass, user_info)
         else:
+            log.info_out("正在自动登录,请稍后...")
             username = lines[0].replace("\n", "")
             password = lines[1].replace("\n", "")
             password = crypto.aes_decrypt(password)

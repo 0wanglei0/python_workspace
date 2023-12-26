@@ -49,18 +49,23 @@ def find_work_time(response_with_code, workday):
     work_total_time = str(current_tr[-1].xpath("./td/text()")[-1]).replace("\n", "").replace(" ", "")
     if len(current_tr) <= 3:
         log.info("无打卡记录")
-        return work_total_time
-    go_home_time = "-"
-    log.d("len(current_tr)", len(current_tr))
-    if len(current_tr) > 4:
-        go_home_time = str(current_tr[-2].xpath("./td/text()")[1]).replace("\n", "").strip()
-    clock_time = str(current_tr[2].xpath("./td/text()")[1]).replace("\n", "").strip().split(" ")[1]
-    clock_in[workday] = clock_time
-    clock_go_home[workday] = go_home_time
-
-    log.d("work_total_time", work_total_time)
-    log.d("go_home_time", go_home_time)
-    log.d("clock_time", clock_time)
+        if weekdays.is_workday(workday):
+            log.info("工作日未打卡视为请假")
+            clock_in[workday] = "-"
+            clock_go_home[workday] = "-"
+            delay_map[workday] = 0
+            vacations_map[workday] = "今天请假了，记得请假哦"
+    else:
+        go_home_time = "-"
+        log.d("len(current_tr)", len(current_tr))
+        if len(current_tr) > 4:
+            go_home_time = str(current_tr[-2].xpath("./td/text()")[1]).replace("\n", "").strip()
+        clock_time = str(current_tr[2].xpath("./td/text()")[1]).replace("\n", "").strip().split(" ")[1]
+        clock_in[workday] = clock_time
+        clock_go_home[workday] = go_home_time
+        log.d("go_home_time", go_home_time)
+        log.d("clock_time", clock_time)
+        log.d("work_total_time", work_total_time)
     return work_total_time
 
 
@@ -135,7 +140,7 @@ def total_time_to_file(table_dic, input_month):
     # print(table_dic)
     print_lst = [
         str("日期" + "\t" + "请假类型" + "\t" + "请假时间" + "\t" + "工时" + "\t" + "加班时间" + "\t" + "在岗时长"
-            + "\t" + "漏填日报" + "\t" + "上班打卡" + "\t" + "下班打卡" + "\t" + "迟到请假" + "\t" + "加班串休" + "\n")]
+            + "\t" + "漏填日报" + "\t" + "上班打卡" + "\t" + "下班打卡" + "\t" + "迟到未请假" + "\t" + "加班串休" + "\n")]
     fill_value = table_dic.get("values")
     workday = 0
     external_work = float(0)
@@ -253,16 +258,24 @@ def total_time_to_file(table_dic, input_month):
     delay_time_total = 0
     for value in delay_map.values():
         delay_time_total += value
-    calculate_header = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时",
-                        "预计请假工时", "总计请假时间"]
+    log.d("delay_time_total: ", delay_time_total)
+    # 可串休是固定的
+    # 5 剩余串休 = 可串休 - 已请假 - 预计请假
+    # 6 扣工资工时 = 0 if 剩余串休 > 0 else 0 - 剩余串休
+    # 7 预计迟到请假是固定的
+    # 8 请假时间预算 = 已请假 + 预计迟到
+    field_item_5_temp = holiday_hour - holiday_time - delay_time_total
+    field_item_5 = float("%.2f" % (0 if field_item_5_temp < 0 else field_item_5_temp))
+    log.d("field_item_5_temp: ", field_item_5_temp)
+    log.d("field_item_5: ", field_item_5)
+
+    calculate_header = ["当前负荷", "预计加班时间", "已加班", "可串休", "已请假", "预计请假工时", "请假总预算", "剩余串休", "扣工资工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)), "",
-                       str("%.2f" % external_work), holiday_time, holiday_hour,
-                       str("%.2f" % (0 if holiday_hour - holiday_time < 0 else holiday_hour - holiday_time)),
-                       "0" if holiday_time - holiday_hour < 0 else str("%.2f" % (holiday_time - holiday_hour)),
+                       str("%.2f" % external_work), holiday_hour, holiday_time,
                        str(delay_time_total),
-                       str("%.2f" %
-                           ((0 if holiday_time - holiday_hour < 0 else (holiday_time - holiday_hour)) + delay_time_total)
-                           )]
+                       str("%.2f" % (delay_time_total if holiday_time == 0 else holiday_time + delay_time_total)),
+                       str(field_item_5),
+                       str("%.2f" % (0 if holiday_hour - field_item_5 > 0 else abs(holiday_hour - field_item_5)))]
 
     return [print_lst, calculate_header, calculate_value, work_at_weekend]
 
@@ -409,6 +422,8 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
             remain_work_time = float(field_item[5]) - float(field_item[3])
             if remain_work_time < float(field_item[6]):
                 log.info_out(f"{field_item[0]} 是请假了吗？记得请假哦")
+                vacations_map[field_item[0]] = f"{field_item[0]} 总工时不足，记得请假哦"
+                lst[10] = f"{field_item[0]} 总工时不足，记得请假哦" if lst[10] == "" else lst[10] + "\n" + f"{field_item[0]} 总工时不足，记得请假哦"
             elif float(remain_work_time) > 0.2:
                 loss_work_time_dict[field_item[0]] = [field_item[2], field_item[3], field_item[5]]
 
@@ -421,10 +436,10 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
             # if key in work_at_weekend:
             #     continue
             value = worktime_by_days_dict[key]
-            if value == '0.0':
+            if value == '0.0' and not weekdays.is_workday(key):
                 continue
-            loss_list = [key, "", "", "", "", value, value, clock_in.get(key), clock_go_home.get(key),
-                         str("" if delay_map.get(key, 0) == 0 else f"迟到了,要请假{delay_map.get(key, 0)}小时"), vacations_map.get(key)]
+            loss_list = [key, "", "", "", "", value, value, clock_in.get(key, ""), clock_go_home.get(key, ""),
+                         str("" if delay_map.get(key, 0) == 0 else f"迟到了,要请假{delay_map.get(key, 0)}小时"), vacations_map.get(key, "")]
             loss_work_time_dict[key] = [value]
 
             if weekdays.is_workday(key):
@@ -439,6 +454,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
     tb.add_rows(rows)
     log.info_out("请查看：")
     log.info_out(tb)
+    sorted_vacations_map = dict(sorted(vacations_map.items(), key=lambda i: i[0]))
     datas = {
         tb.field_names[0]: list(item[0] for item in rows),
         tb.field_names[1]: list(item[1] for item in rows),
@@ -450,7 +466,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
         tb.field_names[7]: list(clock_in_time for clock_in_time in clock_in.values()),
         tb.field_names[8]: list(go_home for go_home in clock_go_home.values()),
         tb.field_names[9]: list(delay_time for delay_time in delay_map.values()),
-        tb.field_names[10]: list(vacation for vacation in vacations_map.values())
+        tb.field_names[10]: list(vacation for vacation in sorted_vacations_map.values())
     }
 
     return external_work, datas
@@ -458,8 +474,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
 
 def show_work_report_analysis(work_total):
     tb_total = ptb.PrettyTable()
-    tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "请假合计", "可串休", "剩余串休", "扣工资工时",
-                            "预计迟到请假", "总计请假时间"]
+    tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "可串休", "已请假", "预计请假工时", "请假总预算", "剩余串休", "扣工资工时"]
     tb_total.add_row(work_total)
     log.info_out(tb_total)
     return {
@@ -471,7 +486,7 @@ def show_work_report_analysis(work_total):
         tb_total.field_names[5]: [work_total[5]],
         tb_total.field_names[6]: [work_total[6]],
         tb_total.field_names[7]: [work_total[7]],
-        tb_total.field_names[8]: [work_total[6] + work_total[7]]
+        tb_total.field_names[8]: [work_total[8]]
     }
 
 
@@ -498,6 +513,10 @@ def calculate_leave_time():
     clock_in_time_str = "09:00:00"
     clock_in_standard_time = datetime.datetime.strptime(clock_in_time_str, "%H:%M:%S")
     for key, value in clock_in.items():
+        if value == "-":
+            log.info("无打卡记录")
+            delay_map[key] = 0
+            continue
         value_to_time = datetime.datetime.strptime(value, "%H:%M:%S")
         knock_off_time = value_to_time + datetime.timedelta(hours=8)
         knock_off_map[key] = knock_off_time
@@ -506,20 +525,24 @@ def calculate_leave_time():
             log.info("相差{}分".format(diff.seconds // 60))
             delay_minutes = diff.seconds / 60
             if 0 < diff.seconds < 60:
-                continue
+                delay_map[key] = 0
             elif 1 < delay_minutes <= 30 and delay_number != 0:
                 delay_number -= 1
                 delay_map[key] = 0
+                vacations_map[key] = f"迟到不足30分钟，迟到次数还剩{delay_number}"
             elif 1 < delay_minutes <= 60:
                 delay_map[key] = 1
             else:
                 quotient, remainder = divmod(delay_minutes - 60, 30)
+                log.d("quotient", quotient)
+                log.d("remainder", remainder)
                 if remainder != 0 and quotient != 0:
                     delay_map[key] = quotient * 0.5 + 0.5 + 1
                 elif remainder == 0 and quotient != 0:
                     delay_map[key] = quotient + 0.5 + 1
                 else:
                     delay_map[key] = 0.5 + 1
+                vacations_map[key] = f"迟到超过30分钟，要请假{delay_map[key]}小时"
         else:
             delay_map[key] = 0
 
@@ -534,6 +557,9 @@ def calculate_vacation():
     go_home_4_str = "04:00:00"
     go_home_4_time = datetime.datetime.strptime(go_home_4_str, "%H:%M:%S")
     for key, value in clock_go_home.items():
+        if value == '-':
+            log.info("无打卡记录")
+            continue
         # 日期
         leave_day = value.split(" ")[0]
         # 时间字符串
@@ -552,7 +578,8 @@ def calculate_vacation():
             elif value_to_time > go_home_22_time:
                 vacations_map[key] = "打车可报销\n明天可串休1h"
             else:
-                vacations_map[key] = ""
+                vacations_map[key] = vacations_map[key] if vacations_map.get(key, "") != "" else ""
+        clock_go_home[key] = value.split(" ")[1]
 
 
 # ios 运行可能要在mac上运行pyinstaler
@@ -588,7 +615,7 @@ if __name__ == '__main__':
         log.info_out("统计已登记日报完成")
         # print(work_time_dict)
         work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict, year_month)
-        log.info_out("表格制作完成")
+        log.info_out("表格制作完成\n\n")
         _external_work, _datas = show_work_report(work_time_info, work_time_by_days_dict, work_weekend)
         # print(table_csv_string)
         # print(_external_work)
@@ -629,6 +656,7 @@ if __name__ == '__main__':
                     _datas_analysis = show_work_report_analysis(work_time_value)
                     # write_to_file(table_csv_string, calculate_header, calculate_value)
                     # write_to_file(work_time_info, work_time_header, work_time_value)
+        log.d("_datas", _datas)
         m_write.write_to_excel(log, _datas, _datas_analysis)
         log.info_out("完成")
         browser.quit()
