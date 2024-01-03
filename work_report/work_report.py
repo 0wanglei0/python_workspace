@@ -18,6 +18,7 @@ from log_print import Log
 import argparse
 import module_browser as m_browser
 import module_write_file as m_write
+import utils
 
 """ ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;." --add-binary "chromedriver_115.exe;." """
 
@@ -179,7 +180,7 @@ def total_time_to_file(table_dic, input_month):
                                   + "\t" + last_item[9] \
                                   + "\t" + last_item[10]
                 print_lst[len(print_lst) - 1] = new_item_string + "\n"
-                if delay_map.get(item[0], 0) - float(item[5]) <= 0:
+                if item[0] != "请假" and delay_map.get(item[0], 0) - float(item[5]) <= 0:
                     delay_map[item[0]] = 0
                 log.d("latest_item", new_item_string)
                 # print("item", item)
@@ -204,7 +205,7 @@ def total_time_to_file(table_dic, input_month):
                                  + "\t" + clock_in[item[0]]
                                  + "\t" + clock_go_home[item[0]]
                                  + "\t" + str("" if delay_map.get(item[0], 0) - float(
-                item[6]) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                item[6]) <= 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                                  + "\t" + vacations_map[item[0]]
                                  + "\n"))
             if delay_map.get(item[0], 0) - float(item[6]) <= 0:
@@ -289,7 +290,7 @@ def calculate_loss_time(loss_work_time):
     _keys = list(loss_work_time.keys())
     chooses = []
     log.info(_keys)
-    input_date = weekdays.get_first_and_end_day_by_month(year_month)
+    input_date = weekdays.get_first_and_end_day_by_month(validate_input_result)
     key_len = len(_keys) - 1
     if input_date[0].month != weekdays.get_current_month():
         key_len = len(_keys)
@@ -325,8 +326,8 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
         local_browser.get(url)
 
         date_input = local_browser.find_element(By.ID, "time_entry_spent_on")
-        use_js_change_value(local_browser, "time_entry_spent_on", _keys[choose_index])
-        time.sleep(1)
+        utils.use_js_change_value(local_browser, "time_entry_spent_on", _keys[choose_index])
+        time.sleep(1.5)
 
         work_hours_input = local_browser.find_element(By.ID, "time_entry_hours")
         comments_input = local_browser.find_element(By.ID, "time_entry_comments")
@@ -356,7 +357,7 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
             else:
                 commit_button.click()
 
-        time.sleep(3)
+        time.sleep(2)
         residue_time = float(total_time) - float(logged_time) - float(input_work_hours)
         if len(key_for_choose) == 0 and residue_time == 0:
             key_for_choose.pop(choose_index)
@@ -371,17 +372,6 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
                 return 1
     else:
         return 0
-
-
-def use_js_change_value(_browser, element_id, value):
-    js = f"""
-        element = document.getElementById("{element_id}")
-        element.value = '{value}'
-    """
-    #
-    # print(js)
-    # print(value)
-    _browser.execute_script(js)
 
 
 def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
@@ -598,8 +588,15 @@ if __name__ == '__main__':
     vacations_map = {}
 
     try:
-        year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
-        login_result = m_browser.auto_login(log, year_month)
+        while True:
+            year_month = input("请输入要查询的年月份(例如2023.8或8，仅查询当年月份，可空，默认为当月)")
+            validate_input_result = weekdays.in_three_month(year_month)
+            if validate_input_result is None:
+                log.info_out("仅支持查询近3月日报,请重新输入")
+            else:
+                break
+
+        login_result = m_browser.auto_login(log, validate_input_result)
         if login_result is None:
             log.info_out("浏览器加载失败，结束运行")
             sys.exit()
@@ -608,13 +605,13 @@ if __name__ == '__main__':
         log.info_out("页面加载中，请稍后...")
 
         # 好像只能这样了，请假的
-        work_time_by_days_dict = get_time_at_company(year_month)
+        work_time_by_days_dict = get_time_at_company(validate_input_result)
         log.info_out("在岗时间统计完成")
         # work_time_by_days_dict = {'2023-09-01': '8.33', '2023-09-02': '0.0', '2023-09-03': '0.0', '2023-09-04': '10.15', '2023-09-05': '11.73', '2023-09-06': '7.61', '2023-09-07': '5.48', '2023-09-08': '8.08', '2023-09-09': '0.0', '2023-09-10': '0.0', '2023-09-11': '2.41'}
         work_time_dict = get_work_time(origin_url)
         log.info_out("统计已登记日报完成")
         # print(work_time_dict)
-        work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict, year_month)
+        work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict, validate_input_result)
         log.info_out("表格制作完成\n\n")
         _external_work, _datas = show_work_report(work_time_info, work_time_by_days_dict, work_weekend)
         # print(table_csv_string)
@@ -643,12 +640,12 @@ if __name__ == '__main__':
             if log_result != 0:
                 re_cat = input("是否重新查看工作报告：Y/N")
                 if re_cat == "Y" or re_cat == "y":
-                    work_time_by_days_dict = get_time_at_company(year_month)
+                    work_time_by_days_dict = get_time_at_company(validate_input_result)
 
                     work_time_dict = get_work_time(origin_url)
 
                     work_time_info, work_time_header, work_time_value, work_weekend = total_time_to_file(work_time_dict,
-                                                                                                         year_month)
+                                                                                                         validate_input_result)
                     _external_work, _datas = show_work_report(work_time_info, work_time_by_days_dict, work_weekend)
                     work_time_value[1] = "%.2f" % _external_work
 

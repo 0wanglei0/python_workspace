@@ -20,22 +20,7 @@ def get_start_end_days_string():
 
 
 def get_first_and_end_day_by_month(input_month):
-    today_date = get_today_date()
-    target_year = today_date.year
-    target_month = today_date.month
-    if input_month != "":
-        if "." in input_month:
-            year_month = input_month.split(".")
-            target_year = int(year_month[0])
-            target_month = int(year_month[1])
-        else:
-            target_month = int(input_month)
-
-        if target_month > 12:
-            target_month = today_date.month
-        last_day = calendar.monthrange(target_year, target_month)[1]
-    else:
-        last_day = today_date.day
+    target_year, target_month, last_day = input_month
 
     # print(target_year)
     # print(target_month)
@@ -102,18 +87,55 @@ def get_days_until_today():
 
 
 def get_days_until_today_with_month(input_month):
-    today = get_today_date()
     # print(today)
     # print(today.month)
-    if input_month != "" and int(input_month) != today.month:
-        start_day, end_day = get_first_and_end_day_by_month(input_month)
-    else:
-        start_day = datetime.date(today.year, today.month, 1)
-        end_day = datetime.date(today.year, today.month, today.day)
-
+    start_day, end_day = get_first_and_end_day_by_month(input_month)
     # print(start_day)
     # print(end_day)
     return get_format_dates(start_day, end_day)
+
+
+def in_three_month(input_month):
+    today = datetime.datetime.now()
+    today_year = today.year
+    today_month = today.month
+    # print(f"current_year is {current_year}")
+    target_year = today_year
+
+    if input_month == "":
+        return [today_year, today_month, today.day]
+
+    two_month_ago = today_month - 2
+    if two_month_ago <= 0:
+        two_month_ago += 12
+        target_year -= 1
+    months = [two_month_ago, two_month_ago + 1 if two_month_ago + 1 <= 12 else 1, today_month]
+    # print(f"months is {months}")
+
+    year_month = input_month.split(".")
+    # print(f"year_month is {year_month}")
+
+    if len(year_month) == 1:
+        input_month = int(year_month[0])
+        if input_month > 12:
+            input_month = today_month
+        elif input_month not in months or input_month > today_month:
+            return None
+
+        last_day = calendar.monthrange(today_year, input_month)[1]
+        return [today_year, input_month, last_day]
+
+    input_year = int(year_month[0])
+    input_month = int(year_month[1])
+    if input_month > 12:
+        input_month = today_month
+    elif input_year not in [today_year, target_year] or input_month not in months:
+        return None
+
+    if not datetime.datetime(target_year, two_month_ago, 1) <= datetime.datetime(input_year, input_month, 1) <= today:
+        return None
+    last_day = calendar.monthrange(input_year, input_month)[1]
+    return [input_year, input_month, last_day]
 
 
 if __name__ == "__main__":
@@ -129,4 +151,24 @@ if __name__ == "__main__":
     # print(work_date)
     # print(get_workdays())
     # print(work_date in get_workdays())
-    print(time.localtime(time.time()).tm_mon)
+    # print(time.localtime(time.time()).tm_mon)
+    # today_date = get_today_date()
+    # target_year = today_date.year
+    # target_month = today_date.month
+    # start_date = datetime.datetime(target_year, target_month, 1)
+    #
+    # start_date_yesterday = start_date - datetime.timedelta(days=1)
+    # start_date_yesterday_month = start_date_yesterday.month
+    # start_date_yesterday_year = start_date_yesterday.year
+
+    import calendar
+    # 获取当前月份和年份
+    tests = ["2024.1", "2023.12","2023.11","2023.1","2024.10","2022.12", "8", "10", "12", "1", "2", "3", "2024.12"]
+    for demo in tests:
+        result = in_three_month(demo)
+        print(f"current_month is {demo}")
+        print(f"result is {result}")
+    result_time = in_three_month("")
+    get_workdays_by_month(result_time)
+    # result = in_three_month(tests[2])
+    # get_days_until_today_with_month(result)

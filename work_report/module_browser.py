@@ -11,7 +11,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 import platform
 import judge_browsers as judge
 import chrome_driver_update as cdu
-
+from work_report import utils
 
 headers = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -52,7 +52,7 @@ def auto_login(log, year_month):
     log.info_out("浏览器启动完成！")
     days = weekdays.get_start_end_days_string_by_month(year_month)
     log.d("days", days)
-    url = "http://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
+    url = "https://redmine-pa.mxnavi.com/workreports?utf8=%E2%9C%93&report_state=3&time_begin%5B%5D=" + \
           days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
     local_browser.get(url)
 
@@ -92,9 +92,19 @@ def auto_login(log, year_month):
 
     time.sleep(1)
     set_cookie(local_browser)
+    # goto_workreport(local_browser, days)
     return [local_browser, url]
 
 
 def set_cookie(local_browser):
     cookie = local_browser.get_cookies()[0].get("value")
     headers["Cookie"] = "_redmine_session=" + cookie
+
+
+def goto_workreport(local_browser, days):
+    utils.use_js_change_value(local_browser, "time_begin_", days[0])
+    utils.use_js_change_value(local_browser, "time_end_", days[1])
+    time.sleep(10)
+    commit_button = local_browser.find_element(By.NAME, "commit")
+    commit_button.click()
+    time.sleep(1)
