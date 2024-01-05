@@ -1,0 +1,51 @@
+#:kivy 1.4
+
+<Register>:
+    txt_username: txt_username.text
+    txt_password: txt_password.text
+    canvas:
+        Color:
+            rgba: [1,1,1,1]
+        Rectangle:
+            size: self.size
+            pos: self.pos
+    GridLayout:
+        id: g_input
+        top: root.top - 20
+        width: root.width
+        padding: 20
+        spacing: 20
+        outline_color: (255, 1, 124)
+        cols: 2
+        row_force_default: True
+        row_default_height: 40
+        Label:
+            id: l_username
+            text: "username:"
+            color: (255, 255, 255)
+            width: 100
+        TextInput:
+            id: txt_username
+            text: ''
+        Label:
+            id: l_password
+            text: "password:"
+            color: (255, 255, 255)
+            width: 100
+        TextInput:
+            id: txt_password
+            text: ''
+    GridLayout:
+        top: root.top - g_input.height - 50
+        width: root.width / 2
+        center_x: root.width / 2
+        padding: 20
+        spacing: 20
+        cols: 1
+        row_force_default: True
+        row_default_height: 40
+        Button:
+            id: b_register
+            text: "register"
+            on_press: root.check_status(self)
+            width: root.width / 2
