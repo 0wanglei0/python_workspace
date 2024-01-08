@@ -58,6 +58,7 @@ def find_work_time(response_with_code, workday):
             vacations_map[workday] = "今天请假了，记得请假哦"
     else:
         go_home_time = "-"
+        vacations_map[workday] = ""
         log.d("len(current_tr)", len(current_tr))
         if len(current_tr) > 4:
             go_home_time = str(current_tr[-2].xpath("./td/text()")[1]).replace("\n", "").strip()
@@ -281,52 +282,55 @@ def total_time_to_file(table_dic, input_month):
     return [print_lst, calculate_header, calculate_value, work_at_weekend]
 
 
+"""
+loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
+
+"""
 def calculate_loss_time(loss_work_time):
     if loss_work_time == {}:
         log.info("没有需要填写的日报")
         return []
 
-    _key_for_choose = []
-    _keys = list(loss_work_time.keys())
-    chooses = []
-    log.info(_keys)
+    chooses = list(loss_work_time.keys())
+    log.info(chooses)
+
     input_date = weekdays.get_first_and_end_day_by_month(validate_input_result)
-    key_len = len(_keys) - 1
-    if input_date[0].month != weekdays.get_current_month():
-        key_len = len(_keys)
-    for index in range(key_len):
-        choose = f"{index}.{_keys[index]}"
-        chooses.append(choose)
-        _key_for_choose.append(_keys[index])
-    return [_keys, _key_for_choose, chooses]
+    # 如果是当前月，最后一个未填日报一定是当天，因此默认 -1 ，不是当月不减
+    if input_date[0].month == weekdays.get_current_month():
+        chooses = chooses[:len(chooses) - 1]
+
+    return chooses
 
 
-def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
-    log.d("_keys", _keys)
-    log.d("_key_for_choose", _key_for_choose)
-    log.d("_chooses", _chooses)
-    while len(_chooses) != 0:
-        log.info_out(_chooses)
-        what_input = input("请选择填写日报日期序号(按非数字键退出)：")
-        pattern = r"\d+"
-        matches = re.findall(pattern, what_input)
-        if what_input == "q" or len(matches) == 0:
-            return 0
-        choose_index = eval(matches[0])
-        if choose_index < 0 or choose_index > len(_key_for_choose):
-            log.info_out("请输入有效的序号")
-            continue
-
-        log.info_out(f"您选择的序号是：{_chooses[choose_index]}")
+def log_work_time(local_browser, chooses):
+    log.d("_chooses", chooses)
+    while len(chooses) != 0:
         all_issues_url = """https://redmine-pa.mxnavi.com/issues?c%5B%5D=project&c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=subject&f%5B%5D=status_id&f%5B%5D=assigned_to_id&f%5B%5D=project.status&op%5Bassigned_to_id%5D=%3D&op%5Bproject.status%5D=%3D&op%5Bstatus_id%5D=o&set_filter=1&sort=priority%3Adesc%2Cupdated_on%3Adesc&v%5Bassigned_to_id%5D%5B%5D=me&v%5Bproject.status%5D%5B%5D=1&v%5Bstatus_id%5D%5B%5D="""
         local_browser.get(all_issues_url)
-        time.sleep(2)
+        time.sleep(1)
+
+        if len(chooses) > 1:
+            log.info_out(" ".join([f"{index}.{chooses[index]} " for index in range(len(chooses))]))
+            what_input = input("请选择填写日报日期序号(按非数字键退出)：")
+            if not what_input.isdigit():
+                log.info("非数字， 退出")
+                return 0
+            choose_index = eval(what_input)
+            if choose_index not in range(len(chooses)):
+                log.info_out("请输入有效的序号")
+                continue
+
+            log.info_out(f"您选择的序号是：{choose_index}")
+        else:
+            choose_index = 0
+            log.info_out(f"继续填写{chooses[0]}的日报")
+
         issue_id = input("请输入要登记工时的任务id：")
         url = f"https://redmine-pa.mxnavi.com/issues/{issue_id}/time_entries/new"
         local_browser.get(url)
 
         date_input = local_browser.find_element(By.ID, "time_entry_spent_on")
-        utils.use_js_change_value(local_browser, "time_entry_spent_on", _keys[choose_index])
+        utils.use_js_change_value(local_browser, "time_entry_spent_on", chooses[choose_index])
         time.sleep(1.5)
 
         work_hours_input = local_browser.find_element(By.ID, "time_entry_hours")
@@ -359,8 +363,10 @@ def log_work_time(local_browser, _keys, _key_for_choose, _chooses):
 
         time.sleep(2)
         residue_time = float(total_time) - float(logged_time) - float(input_work_hours)
-        if len(key_for_choose) == 0 and residue_time == 0:
-            key_for_choose.pop(choose_index)
+        if float("%.2f"%residue_time) == 0:
+            chooses.pop(choose_index)
+
+        if len(chooses) == 0 and residue_time == 0:
             log.info_out("日报填写完成")
             return 1
         else:
@@ -631,11 +637,7 @@ if __name__ == '__main__':
         loss_time = calculate_loss_time(loss_work_time_dict)
         # print(loss_time)
         if len(loss_time) != 0:
-            keys, key_for_choose, _chooses = loss_time[0], loss_time[1], loss_time[2]
-            # print("_keys", keys)
-            # print("_key_for_choose", key_for_choose)
-            # print("_chooses", _chooses)
-            log_result = log_work_time(browser, keys, key_for_choose, _chooses)
+            log_result = log_work_time(browser, loss_time)
 
             if log_result != 0:
                 re_cat = input("是否重新查看工作报告：Y/N")

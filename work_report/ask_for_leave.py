@@ -33,7 +33,51 @@
 #
 # password = hide_input_password()
 
-import stdiomask
+# import stdiomask
+#
+# password = stdiomask.getpass(prompt='PW: ', mask='*')
+# print(password)
 
-password = stdiomask.getpass(prompt='PW: ', mask='*')
-print(password)
+"""
+loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
+
+"""
+import re
+
+loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
+
+def calculate_loss_time():
+    if loss_work_time == {}:
+        return []
+
+    chooses = list(loss_work_time.keys())
+
+    chooses = chooses[:len(chooses) - 1]
+    print(chooses)
+
+    while len(chooses) != 0:
+        print(" ".join([f"{index}.{chooses[index]} " for index in range(len(chooses))]))
+        what_input = input("请选择填写日报日期序号(按非数字键退出)：")
+        if not what_input.isdigit():
+            print("非数字")
+            return 0
+        choose_index = eval(what_input)
+        if choose_index not in range(len(chooses)):
+            print("请输入有效的序号")
+            continue
+
+        print(f"您选择的序号是：{choose_index}")
+        print("value is ", loss_work_time[chooses[choose_index]][-1])
+        break
+    return chooses
+
+calculate_loss_time()
+
+# input_work_hours = input("请输入要登记的时间(可空，填入全部在岗时间)：")
+# input_work_comments = input("请输入要登记的注释（可空）：")
+# loss_work_time_1 = "8.1"
+# if input_work_hours == "":
+#     input_work_hours = loss_work_time_1
+#
+# if eval(input_work_hours) < float(loss_work_time_1):
+#     print("OK")

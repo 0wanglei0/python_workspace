@@ -169,7 +169,7 @@ if __name__ == '__main__':
         # 比大小
         get_winner(players_pokers, False, True)
         # 输出结果
-        print_winner(False)
+        print_winner(True)
         i += 1
 
     total = 0
