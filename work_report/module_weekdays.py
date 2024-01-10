@@ -1,10 +1,10 @@
 import chinese_calendar
 
-import calendar
 import datetime
 import time
 
 
+# .\pip.exe install chinesecalendar
 def get_first_and_end_day_of_month():
     today_date = get_today_date()
     last_day = calendar.monthrange(today_date.year, today_date.month)

@@ -46,6 +46,7 @@ import re
 
 loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
 
+
 def calculate_loss_time():
     if loss_work_time == {}:
         return []
@@ -71,7 +72,7 @@ def calculate_loss_time():
         break
     return chooses
 
-calculate_loss_time()
+# calculate_loss_time()
 
 # input_work_hours = input("请输入要登记的时间(可空，填入全部在岗时间)：")
 # input_work_comments = input("请输入要登记的注释（可空）：")
@@ -81,3 +82,8 @@ calculate_loss_time()
 #
 # if eval(input_work_hours) < float(loss_work_time_1):
 #     print("OK")
+
+
+residue_time = float("%.2f" % 0 if (float(0.38) - float(0) - float(8.08)) <= 0 else float(0.38) - float(0) - float(8.08))
+if residue_time == 0:
+    print("OK")

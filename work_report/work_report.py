@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
 import sys
 import datetime
 import time
@@ -362,8 +361,10 @@ def log_work_time(local_browser, chooses):
                 commit_button.click()
 
         time.sleep(2)
-        residue_time = float(total_time) - float(logged_time) - float(input_work_hours)
-        if float("%.2f"%residue_time) == 0:
+        residue_time = float("%.2f" % 0 if (float(total_time) - float(logged_time) - float(input_work_hours)) <= 0
+                             else float(total_time) - float(logged_time) - float(input_work_hours))
+
+        if residue_time == 0:
             chooses.pop(choose_index)
 
         if len(chooses) == 0 and residue_time == 0:
@@ -586,7 +587,7 @@ def calculate_vacation():
 if __name__ == '__main__':
     loss_work_time_dict = {}
     # log = Log(parse_args())
-    log = Log(1)
+    log = Log(0)
     clock_in = {}
     clock_go_home = {}
     delay_map = {}

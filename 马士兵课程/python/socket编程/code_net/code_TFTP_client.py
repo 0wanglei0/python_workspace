@@ -57,13 +57,14 @@ class TFTP_Client:
             operation_code, pack_num = struct.unpack('!HH', recv[0:4])
             if int(operation_code) == 5:
                 print('error')
-                exit()
+                return
 
             self.f.write(recv[4:])
 
             if len(recv) < 516:
                 print('completed')
-                exit()
+                # exit()
+                return
 
             ack_package = struct.pack("!HH", 4, pack_num)
             self.client.sendto(ack_package, server)
@@ -71,7 +72,9 @@ class TFTP_Client:
 
 if __name__ == "__main__":
     client_ftp = TFTP_Client()
-    filename = input("please input filename: ")
-    client_ftp.send_to(filename)
-    client_ftp.receive()
+    # 循环发送
+    while True:
+        filename = input("please input filename: ")
+        client_ftp.send_to(filename)
+        client_ftp.receive()
 

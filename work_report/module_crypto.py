@@ -6,6 +6,11 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
 import base64
 
+# 多个相同依赖无法识别，当前使用的依赖是pycryptodome
+# "https://blog.csdn.net/miffy2017may/article/details/107546033"
+# .\pip.exe install pycryptodome
+
+
 def md5_encrypt(origin_string):
     """ 使用md5加密 不能解"""
     md5 = hashlib.md5()
@@ -19,6 +24,7 @@ def base64_encode(origin_string):
 
 def base64_decode(encode_string):
     return base64.b64decode(encode_string.decode("utf-8"))
+
 
 def aes_encrypt(text, key="0123456789ABCDEF"):
     """
@@ -36,6 +42,7 @@ def aes_encrypt(text, key="0123456789ABCDEF"):
     # 将加密后的密文和向量使用base64编码后返回
     return base64.b64encode(encrypted_text + iv).decode()
 
+
 def aes_decrypt(text, key="0123456789ABCDEF"):
     """
     AES解密函数
@@ -51,6 +58,7 @@ def aes_decrypt(text, key="0123456789ABCDEF"):
     # 进行解密并去掉填充的字符
     unpad = lambda s: s[0:-s[-1]]
     return unpad(cipher.decrypt(text[:-16])).decode("utf-8")
+
 
 def generate_key():
     """
@@ -109,3 +117,6 @@ def test_func():
     # 进行解密
     decrypted_text = rsa_decrypt(private_key, encrypted_text)
     print('解密后的文本:', decrypted_text)
+
+
+# test_func()

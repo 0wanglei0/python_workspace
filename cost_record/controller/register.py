@@ -3,6 +3,7 @@ from cost_record.view.user_register import Register
 
 
 class UserApp(App):
+
     def build(self):
         return Register()
     # 两种方式加载其他目录的文件 2

@@ -175,7 +175,7 @@ def show_password(prompt):
 if __name__ == '__main__':
     # base_url = 'http://npm.taobao.org/mirrors/chromedriver/'
     # # 匹配前3位版本号的正则表达式
-    # version_re = re.compile(r'^[1-9]\d*\.\d*.\d*')
+    version_re = re.compile(r'^[1-9]\d*\.\d*.\d*')
     # checkChromeDriverUpdate()
     # run()
     password = ""
