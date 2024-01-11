@@ -22,9 +22,10 @@ class Log:
             return
         self.save_to_log_file(message)
 
-    @staticmethod
-    def info_out(message):
+    def info_out(self, message):
         print(message)
+        self.save_to_log_file(message)
+
 
     @staticmethod
     def info_out_to_file(time, message, log_file):

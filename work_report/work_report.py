@@ -298,6 +298,10 @@ def calculate_loss_time(loss_work_time):
     if input_date[0].month == weekdays.get_current_month():
         chooses = chooses[:len(chooses) - 1]
 
+    for index, choose in enumerate(chooses):
+        if loss_work_time[choose][-1] == '0.0':
+            chooses.pop(index)
+
     return chooses
 
 
@@ -449,6 +453,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
 
     rows.sort(key=lambda i: i[0], reverse=False)
     tb.add_rows(rows)
+    log.info(loss_work_time_dict)
     log.info_out("请查看：")
     log.info_out(tb)
     sorted_vacations_map = dict(sorted(vacations_map.items(), key=lambda i: i[0]))
