@@ -21,7 +21,7 @@ work_report/chromedriver.exe
 work_report/chromedriver.exe
 work_report/chromedriver.zip
 work_report/LICENSE.chromedriver
-work_report/user_info.txt
+work_report/user_info_wl.txt
 work_report/work_report.xlsx
 work_report/chromedriver.exe
 work_report/error.log
@@ -29,3 +29,5 @@ crawl_lessons/@AutomationLog.txt
 *.zip
 alien_invasion/python_从入门到实践/*
 work_report/*_log.txt
+work_report/user_info.txt
+get_string_file/results.txt

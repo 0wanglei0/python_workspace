@@ -1,7 +1,10 @@
-current_money = 2831.12
-current_mortgage = 1995.49
+current_money = 2678.65
+current_mortgage = 1992.47
 each_month_mortgage = 1840
-month = 11
+import datetime
+
+today = datetime.datetime.today()
+month = 12
 year = 0
 current_year = 2023
 print_flag = 0

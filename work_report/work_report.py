@@ -522,6 +522,11 @@ def calculate_leave_time():
         value_to_time = datetime.datetime.strptime(value, "%H:%M:%S")
         knock_off_time = value_to_time + datetime.timedelta(hours=8)
         knock_off_map[key] = knock_off_time
+        if not weekdays.is_workday(key):
+            log.info("非工作日，不计入考勤")
+            delay_map[key] = 0
+            continue
+
         if value_to_time > clock_in_standard_time:
             diff = value_to_time - clock_in_standard_time
             log.info("相差{}分".format(diff.seconds // 60))
@@ -592,7 +597,7 @@ def calculate_vacation():
 if __name__ == '__main__':
     loss_work_time_dict = {}
     # log = Log(parse_args())
-    log = Log(0)
+    log = Log(1)
     clock_in = {}
     clock_go_home = {}
     delay_map = {}

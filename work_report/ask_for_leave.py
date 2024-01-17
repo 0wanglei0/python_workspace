@@ -84,9 +84,9 @@ loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': [
 #     print("OK")
 
 
-residue_time = float("%.2f" % 0 if (float(0.38) - float(0) - float(8.08)) <= 0 else float(0.38) - float(0) - float(8.08))
-if residue_time == 0:
-    print("OK")
+# residue_time = float("%.2f" % 0 if (float(0.38) - float(0) - float(8.08)) <= 0 else float(0.38) - float(0) - float(8.08))
+# if residue_time == 0:
+#     print("OK")
 
 # import os
 # import shutil
@@ -119,22 +119,32 @@ if residue_time == 0:
 loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
 
 """
-loss_work_time = {'2024-01-04': ['0'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
+# loss_work_time = {'2024-01-04': ['0'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
+#
+# def calculate_loss_time(loss_work_time):
+#     if loss_work_time == {}:
+#         return []
+#
+#     chooses = list(loss_work_time.keys())
+#
+#     # if value = 0,return
+#     for index, choose in enumerate(chooses):
+#         print(index)
+#         print(choose)
+#         print(loss_work_time[choose])
+#         if loss_work_time[choose][-1] == '0':
+#             chooses.pop(index)
+#
+#     return chooses
+#
+# print(calculate_loss_time(loss_work_time))
 
-def calculate_loss_time(loss_work_time):
-    if loss_work_time == {}:
-        return []
-
-    chooses = list(loss_work_time.keys())
-
-    # if value = 0,return
-    for index, choose in enumerate(chooses):
-        print(index)
-        print(choose)
-        print(loss_work_time[choose])
-        if loss_work_time[choose][-1] == '0':
-            chooses.pop(index)
-
-    return chooses
-
-print(calculate_loss_time(loss_work_time))
+# import re
+#
+# filter_pattern = r"build"
+# string = r'D:\fb_workspace\services\core\music\FunnAdapter\build\test-results\testDebugUnitTest\binary'
+# match = re.findall(filter_pattern, string)
+# print(match)
+string = '<testsuite name="com.mxsdk.personality.service.ExampleUnitTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2024-01-16T14:14:36" hostname="DESKTOP-KPOKPOP" time="0.005">'
+tests_total = string.split(" ")[2].split('tests=')[1]
+print(tests_total)
