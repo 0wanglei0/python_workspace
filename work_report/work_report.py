@@ -589,6 +589,20 @@ def calculate_vacation():
         clock_go_home[key] = value.split(" ")[1]
 
 
+# import json
+# def sendto_feishu(datas):
+#     print(datas)
+#     json_data = json.dumps(datas, ensure_ascii=False)
+#     headers = {'Content-Type': 'application/json'}
+#     url = "https://open.feishu.cn/open-apis/bot/v2/hook/32cb487b-194f-4a52-8c15-f6a093f71a64"
+#     message_json = {
+#         "msg_type": "text",
+#         "content": {
+#             "text": json_data
+#         }
+#     }
+#     response = requests.post(url, data=message_json, headers=headers)
+
 # ios 运行可能要在mac上运行pyinstaler
 # windows
 #  ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py
@@ -667,6 +681,8 @@ if __name__ == '__main__':
                     # write_to_file(table_csv_string, calculate_header, calculate_value)
                     # write_to_file(work_time_info, work_time_header, work_time_value)
         log.d("_datas", _datas)
+
+        # sendto_feishu(_datas)
         m_write.write_to_excel(log, _datas, _datas_analysis)
         log.info_out("完成")
         browser.quit()
