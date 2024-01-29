@@ -31,7 +31,7 @@ def init_edge():
     # print("edge : " + get_path(winreg.HKEY_LOCAL_MACHINE, ico_edge))
     # print("Python : " + get_path(winreg.HKEY_CURRENT_USER, install_python))
     path = get_path(winreg.HKEY_LOCAL_MACHINE, ico_edge)
-    return path != "未安装"
+    return path != "未安装" or 'MicrosoftEdge' in os.getenv('PATH')
 
 
 def init_chrome():

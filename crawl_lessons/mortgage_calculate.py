@@ -1,12 +1,12 @@
-current_money = 2678.65
-current_mortgage = 1992.47
+current_money = 2529.19
+current_mortgage = 1989.46
 each_month_mortgage = 1840
 import datetime
 
 today = datetime.datetime.today()
-month = 12
+month = 1
 year = 0
-current_year = 2023
+current_year = 2024
 print_flag = 0
 for i in range(60):
     month = month + 1
@@ -17,7 +17,7 @@ for i in range(60):
     current_mortgage = current_mortgage - 3.01
     current_money -= current_mortgage
     if current_money < 0:
-        print("this month need cash ", month, year)
+        print("this month need cash ", month, year, current_mortgage)
         current_money += current_mortgage + each_month_mortgage
         continue
     last_money = current_money

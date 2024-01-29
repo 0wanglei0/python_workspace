@@ -1,3 +1,7 @@
+import os
+
+from webdriver_manager.chrome import ChromeDriverManager
+
 import module_weekdays as weekdays
 import time
 import stdiomask
@@ -10,7 +14,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 import platform
 import judge_browsers as judge
-import chrome_driver_update as cdu
+# import chrome_driver_update as cdu
 from work_report import utils
 
 headers = {
@@ -28,13 +32,16 @@ def get_current_default_browser(log):
     log.info_out("浏览器加载中，请稍后...")
 
     this_browser = None
+    log.info('MicrosoftEdge' in os.getenv('PATH'))
+    log.info(judge.init_edge())
     if get_current_system() == "Windows" and judge.init_edge():
         # 如果这里出现SSL异常，可能是应为开了代理导致SSL验证不过
         this_browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()))
         log.info_out("使用Edge")
 
     if this_browser is None:
-        this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
+        # this_browser = webdriver.Chrome(service=Service(executable_path=cdu.get_report_by_chrome()))
+        this_browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
         log.info_out("使用Chrome")
 
     if this_browser is None:
