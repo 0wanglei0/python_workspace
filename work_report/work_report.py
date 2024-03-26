@@ -61,12 +61,15 @@ def find_work_time(response_with_code, workday):
     work_total_time = str(current_tr[-1].xpath("./td/text()")[-1]).replace("\n", "").replace(" ", "")
     if len(current_tr) <= 3:
         log.info("无打卡记录")
+        clock_in[workday] = "-"
+        clock_go_home[workday] = "-"
+        delay_map[workday] = 0
         if weekdays.is_workday(workday):
             log.info("工作日未打卡视为请假")
-            clock_in[workday] = "-"
-            clock_go_home[workday] = "-"
-            delay_map[workday] = 0
             vacations_map[workday] = "今天请假了，记得请假哦"
+        else:
+            log.info("周末或假期")
+            vacations_map[workday] = ""
     else:
         go_home_time = "-"
         vacations_map[workday] = ""
@@ -191,8 +194,8 @@ def total_time_to_file(table_dic, input_month):
                                   + "\t" + last_item[3] \
                                   + "\t" + str("%.2f" % (current_day_total - 8)) \
                                   + "\t" + last_item[5] \
-                                  + "\t" + str(
-                    "%.2f" % (0 if 8 - float(current_day_total) < 0 else 8 - float(current_day_total))) \
+                                  + "\t" + str("%.2f" % (0 if 8 - float(current_day_total) < 0
+                                                         else 8 - float(current_day_total))) \
                                   + "\t" + last_item[7] \
                                   + "\t" + last_item[8] \
                                   + "\t" + last_item[9] \
@@ -222,8 +225,8 @@ def total_time_to_file(table_dic, input_month):
                                  + "\t" + str("%.2f" % standard_time)
                                  + "\t" + clock_in[item[0]]
                                  + "\t" + clock_go_home[item[0]]
-                                 + "\t" + str("" if delay_map.get(item[0], 0) - float(
-                item[6]) <= 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                                 + "\t" + str("" if delay_map.get(item[0], 0) - float(item[6]) <= 0
+                                              else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                                  + "\t" + vacations_map[item[0]]
                                  + "\n"))
             if delay_map.get(item[0], 0) - float(item[6]) <= 0:
@@ -242,8 +245,8 @@ def total_time_to_file(table_dic, input_month):
                                      + "\t" + item[7] + "\t" + str("%.2f" % (float(item[8]) - float(item[7])))
                                      + "\t" + clock_in[item[0]]
                                      + "\t" + clock_go_home[item[0]]
-                                     + "\t" + str(
-                    "" if delay_map.get(item[0], 0) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                                     + "\t" + str("" if delay_map.get(item[0], 0) == 0
+                                                  else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                                      + "\t" + vacations_map[item[0]]
                                      + "\n"))
                 work_at_weekend.append(item[0])
@@ -259,8 +262,8 @@ def total_time_to_file(table_dic, input_month):
                     + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7])))
                     + "\t" + clock_in[item[0]]
                     + "\t" + clock_go_home[item[0]]
-                    + "\t" + str(
-                        "" if delay_map.get(item[0], 0) == 0 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                    + "\t" + str("" if delay_map.get(item[0], 0) == 0
+                                 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
                     + "\t" + vacations_map[item[0]]
                     + "\n")
                 log.info("date in workday")
@@ -303,6 +306,8 @@ def total_time_to_file(table_dic, input_month):
 loss_work_time = {'2024-01-04': ['8.1'], '2024-01-05': ['8.81'], '2024-01-08': ['1.88']}
 
 """
+
+
 def calculate_loss_time(loss_work_time):
     if loss_work_time == {}:
         log.info("没有需要填写的日报")
@@ -346,7 +351,11 @@ def log_work_time(local_browser, chooses):
             choose_index = 0
             log.info_out(f"继续填写{chooses[0]}的日报")
 
-        issue_id = input("请输入要登记工时的任务id：")
+        issue_id = input("请输入要登记工时的任务id(退出按q)：")
+        if not issue_id.isdigit():
+            log.info("非数字， 退出")
+            return 0
+
         url = f"https://redmine-pa.mxnavi.com/issues/{issue_id}/time_entries/new"
         local_browser.get(url)
 
@@ -412,9 +421,11 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
     new_list = work_list[1::]
     rows = []
     external_work = 0
+    keys = []
     for item in new_list:
         field_item = item.replace("\n", "").split("\t")
         log.info(field_item)
+        keys.append(field_item[0])
         lst = [field_item[0], field_item[1], field_item[2], field_item[3], field_item[4], field_item[5], field_item[6],
                field_item[7], field_item[8], field_item[9], field_item[10]]
         log.info(lst)
@@ -468,6 +479,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
 
             external_work += 0 if _external < 0 else _external
             rows.append(loss_list)
+            keys.append(key)
 
     rows.sort(key=lambda i: i[0], reverse=False)
     tb.add_rows(rows)
@@ -475,6 +487,18 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
     log.info_out("请查看：")
     log.info_out(tb)
     sorted_vacations_map = dict(sorted(vacations_map.items(), key=lambda i: i[0]))
+
+    remove_keys = []
+    for k, v in clock_in.items():
+        if k not in keys:
+            remove_keys.append(k)
+            clock_go_home.pop(k)
+            delay_map.pop(k)
+            sorted_vacations_map.pop(k)
+
+    for key in remove_keys:
+        clock_in.pop(key)
+
     datas = {
         tb.field_names[0]: list(item[0] for item in rows),
         tb.field_names[1]: list(item[1] for item in rows),
@@ -567,7 +591,8 @@ def calculate_leave_time():
                     delay_map[key] = quotient + 0.5 + 1
                 else:
                     delay_map[key] = 0.5 + 1
-                vacations_map[key] = f"迟到超过30分钟，要请假{delay_map[key]}小时"
+                vacations_map[key] = ""
+                # vacations_map[key] = f"迟到超过30分钟，要请假{delay_map[key]}小时"
         else:
             delay_map[key] = 0
 
@@ -594,14 +619,14 @@ def calculate_vacation():
         # 第二天离开
         if not leave_day == key:
             if value_to_time > go_home_4_time:
-                vacations_map[key] = "打车可报销\n明天可串休8h"
+                vacations_map[key] = f"{vacations_map[key]}\n打车可报销\n明天可串休8h"
             elif value_to_time > go_home_24_time:
-                vacations_map[key] = "打车可报销\n明天可串休3h"
+                vacations_map[key] = f"{vacations_map[key]}\n打车可报销\n明天可串休3h"
         else:
             if go_home_21_time < value_to_time < go_home_22_time:
-                vacations_map[key] = "打车可报销"
+                vacations_map[key] = f"{vacations_map[key]}\n打车可报销"
             elif value_to_time > go_home_22_time:
-                vacations_map[key] = "打车可报销\n明天可串休1h"
+                vacations_map[key] = f"{vacations_map[key]}\n打车可报销\n明天可串休1h"
             else:
                 vacations_map[key] = vacations_map[key] if vacations_map.get(key, "") != "" else ""
         clock_go_home[key] = value.split(" ")[1]

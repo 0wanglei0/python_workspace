@@ -69,7 +69,7 @@ def auto_login(log, year_month):
     login_button = local_browser.find_element(By.NAME, "login")
     # print(username)
     # print(password)
-    with open("user_info_wl.txt", "a+", encoding="utf8") as user_info:
+    with open("user_info.txt", "a+", encoding="utf8") as user_info:
         user_info.seek(0)
         lines = user_info.readlines()
         if not lines:

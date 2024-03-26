@@ -1,10 +1,14 @@
-current_money = 2529.19
-current_mortgage = 1989.46
-each_month_mortgage = 1840
+# 公积金
+
+
 import datetime
 
+current_money = 4222.74 - 1983.43
+current_mortgage = 1983.43
+each_month_mortgage = 1840
+
 today = datetime.datetime.today()
-month = 1
+month = 3
 year = 0
 current_year = 2024
 print_flag = 0
