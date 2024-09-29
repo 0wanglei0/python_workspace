@@ -80,3 +80,30 @@ d = { key1.title(): value1 for key1, value1 in zip(keys, values)}
 print(d)
 
 print(zip(keys, values))
+
+# 迭代器
+some_dict = {'a': 1, 'b': 2, 'c': 3}
+print(some_dict)
+dict_iter = iter(some_dict)
+print(next(dict_iter))
+
+for i in dict_iter:
+    print(i)
+
+# 生成器
+"""
+生成器是一种计算机制，一边循环一边计算
+"""
+
+# 列表推导式
+L = [x * x for x in range(5)]
+print(L)
+
+# 生成器
+G = (x * x for x in range(5))
+print(G)
+
+# 调用生成器的第一种方式
+next(G)
+
+# 第二种方式 是for循环

@@ -68,14 +68,14 @@ if __name__ == '__main__':
             send_data = input("answer: ")
             client_socket.send(send_data.encode("utf-8"))
 
-            # question = checklen(getText("user", data.decode("utf-8")))
-            # SparkApi.answer = ""
-            # print("星火:", end="")
-            # SparkApi.main(appid, api_key, api_secret, Spark_url, domain, question)
-            # getText("assistant", SparkApi.answer)
-            #
-            # # send_data = input("answer: ")
-            # client_socket.send(SparkApi.answer.encode("utf-8"))
+            question = checklen(getText("user", data.decode("utf-8")))
+            SparkApi.answer = ""
+            print("星火:", end="")
+            SparkApi.main(appid, api_key, api_secret, Spark_url, domain, question)
+            getText("assistant", SparkApi.answer)
+
+            # send_data = input("answer: ")
+            client_socket.send(SparkApi.answer.encode("utf-8"))
 
         client_socket.close()
         client_list.remove(client_socket)

@@ -63,37 +63,53 @@ def auto_login(log, year_month):
           days[0] + "&time_end%5B%5D=" + days[1] + "&commit=%E6%9F%A5%E8%AF%A2"
     local_browser.get(url)
 
-    time.sleep(3)
-    username_element = local_browser.find_element(By.ID, "username")
-    password_element = local_browser.find_element(By.ID, "password")
-    login_button = local_browser.find_element(By.NAME, "login")
+    time.sleep(2)
+    empty_user_info = True
     # print(username)
     # print(password)
     with open("user_info.txt", "a+", encoding="utf8") as user_info:
         user_info.seek(0)
         lines = user_info.readlines()
-        if not lines:
-            username = input("请输入用户名:")
-            password = stdiomask.getpass(prompt='password: ', mask='*')
-            encrypt_pass = crypto.aes_encrypt(password)
-            log.save_to_file(username, user_info)
-            log.save_to_file(encrypt_pass, user_info)
-        else:
-            log.info_out("正在自动登录,请稍后...")
-            username = lines[0].replace("\n", "")
-            password = lines[1].replace("\n", "")
-            password = crypto.aes_decrypt(password)
-            # print(username)
-            # print(password)
+        while True:
+            username_element = local_browser.find_element(By.ID, "username")
+            username_element.clear()
+            password_element = local_browser.find_element(By.ID, "password")
+            login_button = local_browser.find_element(By.NAME, "login")
+            if not lines:
+                empty_user_info = True
+                username = input("请输入用户名:")
+                password = stdiomask.getpass(prompt='password: ', mask='*')
+                encrypt_pass = crypto.aes_encrypt(password)
+            else:
+                empty_user_info = False
+                log.info_out("正在自动登录,请稍后...")
+                username = lines[0].replace("\n", "")
+                password = lines[1].replace("\n", "")
+                password = crypto.aes_decrypt(password)
+                # print(username)
+                # print(password)
 
-    if username_element:
-        username_element.send_keys(username)
-        time.sleep(1)
-        password_element.send_keys(password)
-        time.sleep(1)
-        login_button.click()
-    else:
-        raise Exception("browser is not load right, please retry")
+            if username_element:
+                username_element.send_keys(username)
+                time.sleep(1)
+                password_element.send_keys(password)
+                time.sleep(1)
+                login_button.click()
+                time.sleep(1)
+                try:
+                    login_error = local_browser.find_element(By.ID, "flash_error")
+                    if login_error:
+                        log.info_out("用户名或密码错误，请重新输入")
+                        continue
+                except Exception as e:
+                    log.info(e)
+
+                if empty_user_info:
+                    log.save_to_file(username, user_info)
+                    log.save_to_file(encrypt_pass, user_info)
+                break
+            else:
+                raise Exception("browser is not load right, please retry")
 
     log.info_out("登录成功")
 

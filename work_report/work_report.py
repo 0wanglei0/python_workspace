@@ -20,10 +20,9 @@ import module_write_file as m_write
 import utils
 
 """ ..\python_workspace\Scripts\pyinstaller.exe -F .\work_report.py --add-binary "chromedriver.exe;." --add-binary "chromedriver_116.exe;." --add-binary "chromedriver_115.exe;." """
-"""
-如果出现正常打包，运行时提示缺少某个依赖，用--hideden-import=[module-name]
- .\pylib\Scripts\pyinstaller.exe -F .\work_report.py --hidden-import=pathlib
-
+""" 标准包
+    如果出现正常打包，运行时提示缺少某个依赖，用--hideden-import=[module-name]
+    .\pylib\Scripts\pyinstaller.exe -F .\work_report.py --hidden-import=pathlib -d noarchive
 """
 """
 获取指定日期的工时
@@ -157,6 +156,14 @@ def get_work_time(url):
     return table_dic
 
 
+def remove_holiday(item, holiday_time):
+    if item[0] == "请假":
+        return str("" if float(holiday_time) - float(item[5]) <= 0 else f"迟到了,要请假{holiday_time}小时")
+    else:
+        return str("" if holiday_time - float(item[6]) <= 0 else f"迟到了,要请假{holiday_time}小时")\
+            if item[1] == "请假" else str("" if holiday_time == 0 else f"迟到了,要请假{holiday_time}小时")
+
+
 def total_time_to_file(table_dic, input_month):
     log.info_out("统计时间制成表格")
     # print(table_dic)
@@ -172,9 +179,9 @@ def total_time_to_file(table_dic, input_month):
         log.d("work_item: ", item)
 
         # 当日多条记录
-        if len(item) != 13:
+        if len(item) != 12:
             # 当日多条记录
-            if len(item) == 10 and item[4] == '' and item[7] == '':
+            if len(item) == 9 and item[4] == '' and item[7] == '':
                 if item[1] == "事假" or item[1] == "病假":
                     holiday_time += float(item[5])
                 last_item = print_lst[len(print_lst) - 1].split("\t")
@@ -184,6 +191,12 @@ def total_time_to_file(table_dic, input_month):
                 last_external_work_time = float(last_item[4])
 
                 log.d("current_holiday_time 1", current_holiday_time)
+                log.d("last_item 1", last_item)
+
+                if last_item[9] == '':
+                    _holiday_time = 0
+                else:
+                    _holiday_time = last_item[9][last_item[9].index("假") + 1: last_item[9].index("小")]
                 if last_item[1] != "":
                     current_holiday_type = last_item[1] + "+" + item[1]
                     current_holiday_time = f"{last_item[2]} + {item[5]} = {float(last_item[2]) + float(item[5])}"
@@ -198,7 +211,7 @@ def total_time_to_file(table_dic, input_month):
                                                          else 8 - float(current_day_total))) \
                                   + "\t" + last_item[7] \
                                   + "\t" + last_item[8] \
-                                  + "\t" + last_item[9] \
+                                  + "\t" + remove_holiday(item, _holiday_time) \
                                   + "\t" + last_item[10]
                 print_lst[len(print_lst) - 1] = new_item_string + "\n"
                 if item[0] != "请假" and delay_map.get(item[0], 0) - float(item[5]) <= 0:
@@ -225,8 +238,7 @@ def total_time_to_file(table_dic, input_month):
                                  + "\t" + str("%.2f" % standard_time)
                                  + "\t" + clock_in[item[0]]
                                  + "\t" + clock_go_home[item[0]]
-                                 + "\t" + str("" if delay_map.get(item[0], 0) - float(item[6]) <= 0
-                                              else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                                 + "\t" + remove_holiday(item, delay_map.get(item[0], 0))
                                  + "\t" + vacations_map[item[0]]
                                  + "\n"))
             if delay_map.get(item[0], 0) - float(item[6]) <= 0:
@@ -245,8 +257,7 @@ def total_time_to_file(table_dic, input_month):
                                      + "\t" + item[7] + "\t" + str("%.2f" % (float(item[8]) - float(item[7])))
                                      + "\t" + clock_in[item[0]]
                                      + "\t" + clock_go_home[item[0]]
-                                     + "\t" + str("" if delay_map.get(item[0], 0) == 0
-                                                  else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                                     + "\t" + remove_holiday(item, delay_map.get(item[0], 0))
                                      + "\t" + vacations_map[item[0]]
                                      + "\n"))
                 work_at_weekend.append(item[0])
@@ -262,8 +273,7 @@ def total_time_to_file(table_dic, input_month):
                     + "\t" + str("%.2f" % (0 if 8 - float(item[7]) < 0 else 8 - float(item[7])))
                     + "\t" + clock_in[item[0]]
                     + "\t" + clock_go_home[item[0]]
-                    + "\t" + str("" if delay_map.get(item[0], 0) == 0
-                                 else f"迟到了,要请假{delay_map.get(item[0], 0)}小时")
+                    + "\t" + remove_holiday(item, delay_map.get(item[0], 0))
                     + "\t" + vacations_map[item[0]]
                     + "\n")
                 log.info("date in workday")
@@ -286,18 +296,17 @@ def total_time_to_file(table_dic, input_month):
     # 6 扣工资工时 = 0 if 剩余串休 > 0 else 0 - 剩余串休
     # 7 预计迟到请假是固定的
     # 8 请假时间预算 = 已请假 + 预计迟到
-    field_item_5_temp = holiday_hour - holiday_time - delay_time_total
-    field_item_5 = float("%.2f" % (0 if field_item_5_temp < 0 else field_item_5_temp))
+    field_item_5_temp = holiday_hour - delay_time_total - holiday_time
+    # field_item_5 = float("%.2f" % (0 if field_item_5_temp < 0 else field_item_5_temp))
     log.d("field_item_5_temp: ", field_item_5_temp)
-    log.d("field_item_5: ", field_item_5)
+    # log.d("field_item_5: ", field_item_5)
 
-    calculate_header = ["当前负荷", "预计加班时间", "已加班", "可串休", "已请假", "预计请假工时", "请假总预算", "剩余串休", "扣工资工时"]
+    calculate_header = ["当前负荷", "预计加班时间", "已加班", "可串休", "已请假", "预计请假工时", "剩余串休", "扣工资工时"]
     calculate_value = [str("%.3f" % float(external_work / expect_worktime + 1)), "",
                        str("%.2f" % external_work), holiday_hour, holiday_time,
                        str(delay_time_total),
-                       str("%.2f" % (delay_time_total if holiday_time == 0 else holiday_time + delay_time_total)),
-                       str(field_item_5),
-                       str("%.2f" % (0 if holiday_hour - field_item_5 > 0 else abs(holiday_hour - field_item_5)))]
+                       str(float("%.2f" % (0 if field_item_5_temp <= 0 else field_item_5_temp))),
+                       str("%.2f" % (0 if field_item_5_temp > 0 else abs(field_item_5_temp)))]
 
     return [print_lst, calculate_header, calculate_value, work_at_weekend]
 
@@ -518,7 +527,7 @@ def show_work_report(work_list, worktime_by_days_dict, work_at_weekend):
 
 def show_work_report_analysis(work_total):
     tb_total = ptb.PrettyTable()
-    tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "可串休", "已请假", "预计请假工时", "请假总预算", "剩余串休", "扣工资工时"]
+    tb_total.field_names = ["当前负荷", "预计加班时间", "已加班", "可串休", "已请假", "预计请假工时", "剩余串休", "扣工资工时"]
     tb_total.add_row(work_total)
     log.info_out(tb_total)
     return {
@@ -529,8 +538,7 @@ def show_work_report_analysis(work_total):
         tb_total.field_names[4]: [work_total[4]],
         tb_total.field_names[5]: [work_total[5]],
         tb_total.field_names[6]: [work_total[6]],
-        tb_total.field_names[7]: [work_total[7]],
-        tb_total.field_names[8]: [work_total[8]]
+        tb_total.field_names[7]: [work_total[7]]
     }
 
 
@@ -575,22 +583,23 @@ def calculate_leave_time():
             delay_minutes = diff.seconds / 60
             if 0 < diff.seconds < 60:
                 delay_map[key] = 0
-            elif 1 < delay_minutes <= 30 and delay_number != 0:
+            elif 1 <= delay_minutes < 30 and delay_number != 0:
                 delay_number -= 1
                 delay_map[key] = 0
                 vacations_map[key] = f"迟到不足30分钟，迟到次数还剩{delay_number}"
-            elif 1 < delay_minutes <= 60:
+            elif 1 <= delay_minutes < 60:
                 delay_map[key] = 1
             else:
                 quotient, remainder = divmod(delay_minutes - 60, 30)
                 log.d("quotient", quotient)
                 log.d("remainder", remainder)
                 if remainder != 0 and quotient != 0:
-                    delay_map[key] = quotient * 0.5 + 0.5 + 1
+                    total = quotient * 0.5 + 0.5 + 1
                 elif remainder == 0 and quotient != 0:
-                    delay_map[key] = quotient + 0.5 + 1
+                    total = quotient + 0.5 + 1
                 else:
-                    delay_map[key] = 0.5 + 1
+                    total = 0.5 + 1
+                delay_map[key] = total - 1 if total > 3 else total
                 vacations_map[key] = ""
                 # vacations_map[key] = f"迟到超过30分钟，要请假{delay_map[key]}小时"
         else:
